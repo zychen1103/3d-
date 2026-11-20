@@ -1,0 +1,3245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 殭屍浩劫：光明戰役 - 官方網站 & 連線大廳</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Orbitron', sans-serif;
+            background-color: #030712;
+            color: #f8fafc;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.2);
+        }
+
+        .glass-card-hover:hover {
+            transform: translateY(-4px);
+            border-color: rgba(16, 185, 129, 0.6);
+            box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.35);
+        }
+
+        .scope-vignette {
+            background: radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.96) 68%, black 100%);
+            border: 3px solid rgba(16, 185, 129, 0.6);
+            box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.95);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 4px;
+        }
+
+        .hit-overlay {
+            animation: hit-flash 0.3s ease-out forwards;
+        }
+
+        @keyframes hit-flash {
+            0% { background-color: rgba(239, 68, 68, 0.55); }
+            100% { background-color: transparent; }
+        }
+
+        .acid-hit-overlay {
+            animation: acid-flash 0.4s ease-out forwards;
+        }
+
+        @keyframes acid-flash {
+            0% { background-color: rgba(34, 197, 94, 0.45); }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body class="min-h-screen relative bg-slate-950">
+
+    <!-- Global Notification Modal -->
+    <div id="notification-modal" class="hidden fixed top-6 right-6 z-[120] max-w-sm w-full bg-slate-900/95 border-2 border-emerald-500 text-white shadow-2xl rounded-2xl p-4 transition-all duration-300">
+        <div class="flex items-start gap-3">
+            <div id="notif-icon-box" class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shrink-0">
+                <i id="notif-icon" class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="flex-1">
+                <h4 id="notif-title" class="font-bold text-sm text-emerald-300">通知</h4>
+                <p id="notif-message" class="text-xs text-slate-300 mt-1">訊息內容</p>
+            </div>
+            <button onclick="closeNotification()" class="text-slate-400 hover:text-white font-bold">✕</button>
+        </div>
+    </div>
+
+    <!-- Damage Screen Flash Overlay -->
+    <div id="damage-flash" class="pointer-events-none fixed inset-0 z-40 transition-colors duration-200"></div>
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-emerald-900/50 px-4 md:px-8 py-3 flex justify-between items-center shadow-md gap-2">
+        <div class="flex items-center gap-3">
+            <button id="btn-mobile-toggle" onclick="toggleMobileControls()" class="px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 text-xs font-bold transition flex items-center gap-1.5 border border-emerald-500/40 shrink-0">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span id="mobile-toggle-label">手機模式: OFF</span>
+            </button>
+            <a href="#sec-hero" class="font-black text-lg md:text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-lime-400 shrink-0 flex items-center gap-2">
+                <i class="fa-solid fa-biohazard text-emerald-400"></i>
+                <span>3D 殭屍浩劫</span>
+            </a>
+        </div>
+
+        <!-- One-Page Quick Icon Navigation -->
+        <nav class="hidden xl:flex items-center gap-1.5 bg-slate-950/80 px-2.5 py-1.5 rounded-2xl border border-emerald-500/20 text-xs font-bold text-slate-300">
+            <a href="#sec-features" class="px-3 py-1 rounded-xl hover:bg-emerald-500/20 hover:text-emerald-300 transition flex items-center gap-1.5"><i class="fa-solid fa-bolt text-emerald-400"></i>特色</a>
+            <a href="#sec-controls" class="px-3 py-1 rounded-xl hover:bg-emerald-500/20 hover:text-emerald-300 transition flex items-center gap-1.5"><i class="fa-solid fa-gamepad text-cyan-400"></i>操作</a>
+            <a href="#sec-zombies" class="px-3 py-1 rounded-xl hover:bg-emerald-500/20 hover:text-emerald-300 transition flex items-center gap-1.5"><i class="fa-solid fa-skull text-red-400"></i>變異體</a>
+            <a href="#sec-arsenal" class="px-3 py-1 rounded-xl hover:bg-emerald-500/20 hover:text-emerald-300 transition flex items-center gap-1.5"><i class="fa-solid fa-gun text-amber-400"></i>軍火庫</a>
+            <a href="#sec-upgrades" class="px-3 py-1 rounded-xl hover:bg-emerald-500/20 hover:text-emerald-300 transition flex items-center gap-1.5"><i class="fa-solid fa-dna text-purple-400"></i>基因強化</a>
+        </nav>
+
+        <!-- Right User Auth & Tokens Badge -->
+        <div class="flex items-center gap-2 md:gap-3">
+            <div class="bg-slate-950 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-bold text-emerald-400 flex items-center gap-1.5 shadow-inner whitespace-nowrap">
+                <i class="fa-solid fa-dna text-emerald-400"></i>
+                <span><strong id="lobby-bio-tokens" class="text-sm font-mono text-emerald-300">100</strong></span>
+            </div>
+
+            <!-- Manual Save Button -->
+            <button id="btn-manual-save" onclick="manualSaveProgress()" class="px-3 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-1.5 shadow-md hover:scale-105 active:scale-95" title="儲存進度">
+                <i class="fa-solid fa-floppy-disk text-emerald-400"></i>
+                <span class="hidden sm:inline">存檔</span>
+            </button>
+
+            <!-- Google Account Login Button -->
+            <button id="btn-google-login" onclick="openGoogleLoginModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition flex items-center gap-1.5 active:scale-95">
+                <i class="fa-brands fa-google text-sm"></i>
+                <span>登入</span>
+            </button>
+
+            <!-- User Profile Badge -->
+            <div id="user-profile-badge" class="hidden flex items-center gap-2 bg-slate-900 border border-emerald-500/40 px-3 py-1 rounded-xl text-xs shadow-sm">
+                <img id="user-avatar" class="w-7 h-7 rounded-full border-2 border-emerald-400 object-cover" src="https://placehold.co/40x40/10b981/ffffff?text=G" alt="avatar">
+                <div class="leading-tight hidden sm:block">
+                    <span id="user-display-name" class="font-bold text-slate-200 block text-xs">特勤員</span>
+                    <span id="user-account-code-label" class="text-[10px] text-emerald-400 font-mono block"></span>
+                </div>
+                <button onclick="openProfileModal()" class="text-emerald-400 hover:text-emerald-300 ml-1" title="修改暱稱"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button onclick="logoutGoogle()" class="text-red-400 hover:text-red-300 ml-1 border-l border-slate-800 pl-2 transition" title="登出">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main One-Page Showcase Home Container -->
+    <main id="showcase-view" class="max-w-7xl mx-auto px-4 py-8 space-y-12">
+        <!-- Section 1: Hero Banner -->
+        <section id="sec-hero" class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 text-white p-7 md:p-12 border border-emerald-500/40 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div class="space-y-5 max-w-2xl z-10">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 bg-lime-400/20 border border-lime-400/50 text-lime-300 rounded-full font-black text-xs tracking-widest uppercase">
+                    <i class="fa-solid fa-crosshairs"></i>
+                    <span>3D TACTICAL FPS SURVIVAL</span>
+                </div>
+                <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                    3D 殭屍浩劫：<span class="text-transparent bg-clip-text bg-gradient-to-r from-lime-400 to-emerald-400">光明戰役</span>
+                </h1>
+
+                <!-- Icon Stat Pills (Minimal Text) -->
+                <div class="flex flex-wrap gap-3 pt-1">
+                    <div class="flex items-center gap-2 bg-slate-950/80 border border-emerald-500/30 px-3.5 py-2 rounded-2xl text-xs font-bold">
+                        <i class="fa-solid fa-gun text-emerald-400 text-base"></i>
+                        <span>8 款 3D 武器</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-950/80 border border-purple-500/30 px-3.5 py-2 rounded-2xl text-xs font-bold">
+                        <i class="fa-solid fa-biohazard text-purple-400 text-base"></i>
+                        <span>3 種變異殭屍</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-950/80 border border-cyan-500/30 px-3.5 py-2 rounded-2xl text-xs font-bold">
+                        <i class="fa-solid fa-users text-cyan-400 text-base"></i>
+                        <span>4 人連線 / AI 隊友</span>
+                    </div>
+                </div>
+
+                <!-- Launch & Lobby Action Buttons -->
+                <div class="flex flex-wrap gap-3.5 pt-2">
+                    <button onclick="launchGameEngine('solo')" class="px-7 py-4 rounded-2xl bg-gradient-to-r from-lime-400 to-emerald-400 text-slate-950 font-black text-base shadow-xl shadow-lime-400/25 hover:scale-105 transition active:scale-95 flex items-center gap-2.5">
+                        <i class="fa-solid fa-play text-lg"></i>
+                        <span>單人開戰</span>
+                    </button>
+                    <button onclick="openLobbyModal()" class="px-6 py-4 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 font-black text-base backdrop-blur-md hover:scale-105 transition active:scale-95 flex items-center gap-2.5 shadow-lg shadow-emerald-500/10">
+                        <span class="w-2.5 h-2.5 rounded-full bg-lime-400 animate-ping"></span>
+                        <i class="fa-solid fa-globe"></i>
+                        <span>真人連線大廳</span>
+                    </button>
+                    <button onclick="openFriendsModal()" class="px-5 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 font-bold text-sm transition flex items-center gap-2 relative">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>好友</span>
+                        <span id="friends-badge-count" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center animate-bounce">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visual Icon Emblem Showcase -->
+            <div class="w-full lg:w-80 h-60 rounded-3xl border-2 border-emerald-500/40 overflow-hidden shadow-2xl relative bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center shrink-0">
+                <div class="w-20 h-20 rounded-2xl bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-skull-crossbones text-4xl text-emerald-400 animate-pulse"></i>
+                </div>
+                <div class="text-sm text-emerald-300 font-black tracking-wider">WEBGL 3D ENGINE</div>
+                <div class="flex items-center gap-3 mt-3 text-lg text-slate-400">
+                    <i class="fa-solid fa-shield-halved text-cyan-400" title="護甲系統"></i>
+                    <i class="fa-solid fa-crosshairs text-amber-400" title="精準瞄準"></i>
+                    <i class="fa-solid fa-robot text-sky-400" title="AI 隊友"></i>
+                    <i class="fa-solid fa-cloud-arrow-up text-emerald-400" title="雲端存檔"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Core Highlights (Icon-First Grid) -->
+        <section id="sec-features" class="space-y-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white">核心特色</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass-card glass-card-hover p-5 rounded-2xl text-center space-y-2.5">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                    <h3 class="font-black text-base text-white">實體掩體戰場</h3>
+                    <p class="text-xs text-slate-400">零穿牆障礙物與精準彈道</p>
+                </div>
+                <div class="glass-card glass-card-hover p-5 rounded-2xl text-center space-y-2.5">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h3 class="font-black text-base text-white">智能 3D AI 隊友</h3>
+                    <p class="text-xs text-slate-400">自主巡邏、走位與掩護射擊</p>
+                </div>
+                <div class="glass-card glass-card-hover p-5 rounded-2xl text-center space-y-2.5">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    </div>
+                    <h3 class="font-black text-base text-white">PC / 手機雙支援</h3>
+                    <p class="text-xs text-slate-400">鍵鼠與全螢幕觸控一鍵切換</p>
+                </div>
+                <div class="glass-card glass-card-hover p-5 rounded-2xl text-center space-y-2.5">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-infinity"></i>
+                    </div>
+                    <h3 class="font-black text-base text-white">無限點數強化</h3>
+                    <p class="text-xs text-slate-400">擊殺即時獲點與基因升級</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Operation & Controls Guide (PC & Mobile) -->
+        <section id="sec-controls" class="space-y-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-gamepad"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white">操作說明</h2>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- PC Controls Card -->
+                <div class="glass-card p-6 rounded-3xl border border-emerald-500/30 space-y-4">
+                    <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-desktop"></i>
+                        </div>
+                        <h3 class="font-black text-lg text-emerald-300">電腦版 (鍵盤 + 滑鼠)</h3>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        <div class="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 font-mono font-black text-emerald-400">W A S D</span>
+                            <span class="font-bold text-slate-200"><i class="fa-solid fa-person-running mr-1 text-emerald-400"></i>角色移動</span>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 font-mono font-black text-cyan-400"><i class="fa-solid fa-computer-mouse mr-1"></i>移動</span>
+                            <span class="font-bold text-slate-200"><i class="fa-solid fa-compass mr-1 text-cyan-400"></i>360° 轉向</span>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 font-mono font-black text-red-400">左鍵 / 右鍵</span>
+                            <span class="font-bold text-slate-200"><i class="fa-solid fa-crosshairs mr-1 text-red-400"></i>開火 / 開鏡</span>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 font-mono font-black text-amber-400">1 ~ 8 鍵</span>
+                            <span class="font-bold text-slate-200"><i class="fa-solid fa-gun mr-1 text-amber-400"></i>切換武器</span>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 font-mono font-black text-blue-400">R 鍵</span>
+                            <span class="font-bold text-slate-200"><i class="fa-solid fa-rotate mr-1 text-blue-400"></i>裝填彈藥</span>
+                        </div>
+                        <div class="bg-slate-950/90 p-3 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-1.5">
+                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600 font-mono font-black text-yellow-400">B / ESC</span>
+                            <span class="font-bold text-slate-200"><i class="fa-solid fa-cart-shopping mr-1 text-yellow-400"></i>戰術商店</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Controls Card -->
+                <div class="glass-card p-6 rounded-3xl border border-cyan-500/30 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-mobile-screen"></i>
+                            </div>
+                            <h3 class="font-black text-lg text-cyan-300">手機版 (雙觸控模式)</h3>
+                        </div>
+                        <button onclick="toggleMobileControls()" class="px-3 py-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition">
+                            點此切換模式
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-arrows-up-down-left-right"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-white">左側虛擬搖桿</div>
+                                <div class="text-slate-400 text-[11px]">拖曳控制前後左右移動</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-hand-pointer"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-white">滑動螢幕空白處</div>
+                                <div class="text-slate-400 text-[11px]">360° 轉動視角與精準瞄準</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-white">右下開火 / 開鏡</div>
+                                <div class="text-slate-400 text-[11px]">一鍵連發射擊與倍鏡放大</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-cart-shopping"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-white">右下商店 / 換彈</div>
+                                <div class="text-slate-400 text-[11px]">隨時開啟補給與裝填彈匣</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: 3 Zombie Variants (Icon Cards) -->
+        <section id="sec-zombies" class="space-y-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-skull"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white">變異殭屍圖鑑</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card p-5 rounded-2xl border border-emerald-500/30 flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl shrink-0">
+                        <i class="fa-solid fa-person-walking"></i>
+                    </div>
+                    <div class="space-y-1 flex-1">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black text-base text-white">普通感染者</h3>
+                            <span class="text-xs font-mono font-bold text-emerald-400">+1 點</span>
+                        </div>
+                        <div class="flex gap-3 text-xs text-slate-300 font-mono">
+                            <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>50</span>
+                            <span><i class="fa-solid fa-hand-fist text-amber-400 mr-1"></i>近戰突襲</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl border border-purple-500/40 flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-3xl shrink-0">
+                        <i class="fa-solid fa-flask-vial"></i>
+                    </div>
+                    <div class="space-y-1 flex-1">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black text-base text-white">劇毒噴吐者</h3>
+                            <span class="text-xs font-mono font-bold text-purple-400">+3 點</span>
+                        </div>
+                        <div class="flex gap-3 text-xs text-slate-300 font-mono">
+                            <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>70</span>
+                            <span><i class="fa-solid fa-biohazard text-lime-400 mr-1"></i>遠程酸液</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl border border-rose-500/40 flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-3xl shrink-0">
+                        <i class="fa-solid fa-dragon"></i>
+                    </div>
+                    <div class="space-y-1 flex-1">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black text-base text-white">巨型泰坦 BOSS</h3>
+                            <span class="text-xs font-mono font-bold text-amber-400">+10 點</span>
+                        </div>
+                        <div class="flex gap-3 text-xs text-slate-300 font-mono">
+                            <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>450</span>
+                            <span><i class="fa-solid fa-burst text-rose-400 mr-1"></i>重擊擊退</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Difficulty Selection -->
+        <section id="sec-difficulty" class="space-y-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-gauge-high"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white">難度選擇</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div onclick="selectDifficulty('novice')" id="diff-card-novice" class="diff-select-card cursor-pointer glass-card p-4 rounded-2xl border-2 border-emerald-500 hover:scale-105 transition shadow-md">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-black text-emerald-400 text-base"><i class="fa-solid fa-seedling mr-1.5"></i>新手</span>
+                        <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold">0.8x</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-300 font-mono">
+                        <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>150</span>
+                        <span><i class="fa-solid fa-skull text-slate-400 mr-1"></i>60%</span>
+                    </div>
+                </div>
+                <div onclick="selectDifficulty('easy')" id="diff-card-easy" class="diff-select-card cursor-pointer glass-card p-4 rounded-2xl border-2 border-slate-800 hover:scale-105 transition opacity-80">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-black text-cyan-400 text-base"><i class="fa-solid fa-shield mr-1.5"></i>簡單</span>
+                        <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2.5 py-0.5 rounded-full font-mono font-bold">1.0x</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-300 font-mono">
+                        <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>120</span>
+                        <span><i class="fa-solid fa-skull text-slate-400 mr-1"></i>80%</span>
+                    </div>
+                </div>
+                <div onclick="selectDifficulty('normal')" id="diff-card-normal" class="diff-select-card cursor-pointer glass-card p-4 rounded-2xl border-2 border-slate-800 hover:scale-105 transition opacity-80">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-black text-amber-400 text-base"><i class="fa-solid fa-fire mr-1.5"></i>普通</span>
+                        <span class="text-xs bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full font-mono font-bold">1.2x</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-300 font-mono">
+                        <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>100</span>
+                        <span><i class="fa-solid fa-skull text-slate-400 mr-1"></i>100%</span>
+                    </div>
+                </div>
+                <div onclick="selectDifficulty('hard')" id="diff-card-hard" class="diff-select-card cursor-pointer glass-card p-4 rounded-2xl border-2 border-slate-800 hover:scale-105 transition opacity-80">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-black text-red-400 text-base"><i class="fa-solid fa-skull-crossbones mr-1.5"></i>困難</span>
+                        <span class="text-xs bg-red-500/20 text-red-300 px-2.5 py-0.5 rounded-full font-mono font-bold">1.5x</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-300 font-mono">
+                        <span><i class="fa-solid fa-heart text-red-400 mr-1"></i>80</span>
+                        <span><i class="fa-solid fa-skull text-slate-400 mr-1"></i>140%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: 8 Weapons Showcase -->
+        <section id="sec-arsenal" class="space-y-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-gun"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white">8 款戰術軍火庫</h2>
+            </div>
+            <div id="weapons-showcase-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+        </section>
+
+        <!-- Section 7: Permanent Gene Upgrades & Armor Attachments -->
+        <div id="sec-upgrades" class="space-y-10">
+            <section class="space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-dna"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-white">永久基因天賦</h2>
+                </div>
+                <div id="upgrades-cards-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+            </section>
+
+            <section class="space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-white">終極護甲與外掛</h2>
+                </div>
+                <div id="attachments-cards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </section>
+        </div>
+
+        <!-- One-Page Footer CTA -->
+        <footer class="rounded-3xl bg-slate-900/90 border border-emerald-500/30 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-biohazard text-2xl text-emerald-400"></i>
+                <span class="font-black text-white text-sm">3D 殭屍浩劫：光明戰役</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="#sec-hero" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-up"></i> 回到頂部
+                </a>
+                <button onclick="launchGameEngine('solo')" class="px-5 py-2 rounded-xl bg-gradient-to-r from-lime-400 to-emerald-400 text-slate-950 font-black text-xs shadow-lg hover:scale-105 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-play"></i> 立即開戰
+                </button>
+            </div>
+        </footer>
+    </main>
+
+    <!-- 3D Game Canvas & HUD View -->
+    <div id="game-view" class="hidden fixed inset-0 z-50 bg-slate-950 select-none">
+        <div id="game-container" class="w-full h-full absolute inset-0"></div>
+
+        <!-- Crosshair -->
+        <div id="crosshair" class="pointer-events-none fixed z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+            <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_8px_#10b981]"></div>
+            <div class="absolute -top-3 w-0.5 h-2 bg-emerald-400 opacity-80"></div>
+            <div class="absolute -bottom-3 w-0.5 h-2 bg-emerald-400 opacity-80"></div>
+            <div class="absolute -left-3 h-0.5 w-2 bg-emerald-400 opacity-80"></div>
+            <div class="absolute -right-3 h-0.5 w-2 bg-emerald-400 opacity-80"></div>
+        </div>
+
+        <!-- Sniper Scope ADS Overlay -->
+        <div id="sniper-scope" class="hidden pointer-events-none fixed inset-0 z-20 scope-vignette flex items-center justify-center">
+            <div class="w-full h-[1px] bg-red-500/70 absolute"></div>
+            <div class="h-full w-[1px] bg-red-500/70 absolute"></div>
+            <div class="w-36 h-36 border-2 border-emerald-400/50 rounded-full absolute"></div>
+        </div>
+
+        <!-- In-game HUD Layer -->
+        <div id="hud-layer" class="pointer-events-none fixed inset-0 z-10 flex flex-col justify-between p-4 md:p-6 select-none">
+            <div class="flex justify-between items-start w-full">
+                <!-- Health & Shield HUD Bar -->
+                <div class="flex flex-col gap-2 bg-slate-900/85 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 text-white max-w-xs shadow-2xl">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span><i class="fa-solid fa-heart text-red-500 mr-1"></i> 生命 HEALTH</span>
+                            <span id="hp-text" class="font-mono text-emerald-400">100 / 100</span>
+                        </div>
+                        <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                            <div id="hp-bar" class="h-full bg-emerald-500 transition-all duration-200" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span><i class="fa-solid fa-shield-halved text-cyan-400 mr-1"></i> 護甲 SHIELD</span>
+                            <span id="shield-text" class="font-mono text-cyan-400">0 / 50</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                            <div id="shield-bar" class="h-full bg-cyan-400 transition-all duration-200" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-800">
+                        <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800 font-bold">積分: <strong id="score-display" class="text-amber-400 font-mono">0</strong></div>
+                        <div class="bg-slate-950 px-2 py-1 rounded border border-slate-800 font-bold">擊殺: <strong id="hud-kills-label" class="text-red-400 font-mono">0</strong></div>
+                    </div>
+                    <!-- Live Real-Time Squad Teammates HUD -->
+                    <div id="squad-live-hud" class="hidden pt-1.5 border-t border-slate-800 space-y-1.5"></div>
+                </div>
+
+                <!-- Radar Map & In-Game Shop Button -->
+                <div class="flex flex-col items-end gap-2">
+                    <div class="w-[130px] h-[130px] bg-slate-950/90 rounded-full border-2 border-emerald-500/60 shadow-2xl overflow-hidden relative">
+                        <canvas id="minimap-canvas" width="130" height="130" class="w-full h-full"></canvas>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="toggleShop(true)" class="pointer-events-auto px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-cart-shopping"></i> 戰術商店 (B)
+                        </button>
+                        <button onclick="exitGameToHome()" class="pointer-events-auto px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl text-xs shadow-lg transition">
+                            退出戰場
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Ammo & Weapon Bar -->
+            <div class="flex justify-between items-end w-full">
+                <!-- 1-8 Weapon Slots bar -->
+                <div id="weapon-switcher-bar" class="pointer-events-auto flex flex-wrap gap-1.5 p-2 bg-slate-900/85 backdrop-blur-md rounded-2xl border border-slate-700/60 max-w-lg shadow-2xl"></div>
+
+                <div class="bg-slate-900/85 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 text-right text-white min-w-[170px] shadow-2xl">
+                    <div id="weapon-name-hud" class="text-xs font-bold text-emerald-400 uppercase tracking-wider">突擊步槍</div>
+                    <div class="text-3xl font-black font-mono">
+                        <span id="ammo-clip">30</span> / <span id="ammo-reserve" class="text-lg text-slate-400">180</span>
+                    </div>
+                    <!-- Reload Progress Indicator -->
+                    <div id="reload-indicator" class="hidden mt-1.5 space-y-1">
+                        <div class="flex justify-between text-[10px] font-bold text-amber-400">
+                            <span>換彈中...</span>
+                            <span id="reload-pct" class="font-mono">0%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                            <div id="reload-bar" class="h-full bg-amber-400 transition-all duration-75" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Dual-Touch Controls Overlay -->
+        <div id="mobile-controls-layer" class="hidden pointer-events-none fixed inset-0 z-30 select-none">
+            <!-- Left Virtual Joystick -->
+            <div id="joystick-zone" class="pointer-events-auto fixed bottom-8 left-8 w-32 h-32 rounded-full bg-slate-900/70 border-2 border-emerald-400/50 flex items-center justify-center shadow-2xl">
+                <div id="joystick-knob" class="w-12 h-12 rounded-full bg-emerald-400/80 border-2 border-white shadow-lg"></div>
+            </div>
+            <!-- Right Action Buttons -->
+            <div class="pointer-events-auto fixed bottom-8 right-6 flex flex-col items-end gap-3">
+                <div class="flex gap-2.5">
+                    <button id="btn-touch-shop" class="w-14 h-14 rounded-2xl bg-amber-500/90 text-slate-950 font-black text-xs shadow-xl flex flex-col items-center justify-center active:scale-90">
+                        <i class="fa-solid fa-cart-shopping text-base"></i>
+                        <span>商店</span>
+                    </button>
+                    <button id="btn-touch-reload" class="w-14 h-14 rounded-2xl bg-blue-500/90 text-white font-black text-xs shadow-xl flex flex-col items-center justify-center active:scale-90">
+                        <i class="fa-solid fa-rotate text-base"></i>
+                        <span>換彈</span>
+                    </button>
+                </div>
+                <div class="flex gap-3 items-center">
+                    <button id="btn-touch-ads" class="w-16 h-16 rounded-full bg-cyan-500/90 text-slate-950 font-black text-xs shadow-xl flex flex-col items-center justify-center active:scale-90">
+                        <i class="fa-solid fa-crosshairs text-lg"></i>
+                        <span>開鏡</span>
+                    </button>
+                    <button id="btn-touch-fire" class="w-20 h-20 rounded-full bg-red-500/90 border-2 border-red-300 text-white font-black text-sm shadow-2xl flex flex-col items-center justify-center active:scale-90">
+                        <i class="fa-solid fa-fire text-xl"></i>
+                        <span>開火</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- In-Game Tactical Supply Shop Modal (Key B / ESC / Mobile) -->
+    <div id="in-game-shop-modal" class="hidden fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-white max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-amber-400">戰術補給商店</h3>
+                        <p class="text-xs text-slate-400">當前可用戰鬥積分：<strong id="in-game-shop-score" class="text-amber-300 font-mono text-sm">0</strong></p>
+                    </div>
+                </div>
+                <button onclick="toggleShop(false)" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs">返回戰鬥 (ESC)</button>
+            </div>
+            <div id="in-game-shop-container" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Google Account Login Modal -->
+    <div id="google-login-modal" class="hidden fixed inset-0 z-[90] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-white">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-black text-emerald-400 flex items-center gap-2">
+                    <i class="fa-brands fa-google"></i> Google 帳號連線登入
+                </h3>
+                <button onclick="closeGoogleLoginModal()" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <button onclick="loginWithGoogle()" class="w-full py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm shadow-lg flex items-center justify-center gap-2.5 transition">
+                <i class="fa-brands fa-google text-emerald-600 text-base"></i>
+                <span>使用 Google 帳號一鍵登入</span>
+            </button>
+            <div class="relative flex py-1 items-center">
+                <div class="flex-grow border-t border-slate-800"></div>
+                <span class="flex-shrink mx-3 text-[11px] text-slate-500">或輸入 Google Email 綁定</span>
+                <div class="flex-grow border-t border-slate-800"></div>
+            </div>
+            <div class="flex gap-2">
+                <input id="input-google-nickname" onkeydown="if(event.key==='Enter') submitGoogleEmailLogin()" type="email" placeholder="name@gmail.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <button onclick="submitGoogleEmailLogin()" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shrink-0">綁定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Display Name Modal -->
+    <div id="profile-modal" class="hidden fixed inset-0 z-[90] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-white">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-black text-emerald-400"><i class="fa-solid fa-pen-to-square mr-1.5"></i>修改戰術代號</h3>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <input id="input-new-displayname" onkeydown="if(event.key==='Enter') saveNewDisplayName()" type="text" maxlength="18" placeholder="輸入新的玩家暱稱..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeProfileModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">取消</button>
+                <button onclick="saveNewDisplayName()" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black">儲存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4-Player Real-Time Multiplayer Lobby Modal -->
+    <div id="lobby-4player-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-white max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-xl font-black text-emerald-400 flex items-center gap-2">
+                        <i class="fa-solid fa-globe"></i> 真人即時連線大廳
+                    </h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">連線 ID: <span id="mp-my-uid" class="font-mono text-emerald-300 select-all">連線驗證中...</span></p>
+                </div>
+                <button onclick="closeLobbyModal()" class="text-slate-400 hover:text-white font-bold text-xl">✕</button>
+            </div>
+
+            <!-- Room Code Banner & Join Input -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-950/90 p-3.5 rounded-2xl border border-emerald-500/30">
+                <div class="flex items-center justify-between gap-2">
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">當前房間代碼 (傳給好友加入)</div>
+                        <div id="mp-current-room-code" class="text-2xl font-black font-mono tracking-widest text-lime-400">------</div>
+                    </div>
+                    <div class="flex gap-1.5">
+                        <button onclick="copyRoomCode()" class="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs transition flex items-center gap-1">
+                            <i class="fa-solid fa-copy"></i> 複製房號
+                        </button>
+                        <button onclick="createNewMultiplayerRoom()" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition" title="建立新房間">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 border-t md:border-t-0 md:border-l border-slate-800 pt-2.5 md:pt-0 md:pl-3">
+                    <input id="input-join-room-code" onkeydown="if(event.key==='Enter') joinRoomByCode()" type="text" maxlength="6" placeholder="輸入 6 位數房號..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-emerald-500">
+                    <button onclick="joinRoomByCode()" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shrink-0 transition">
+                        加入房間
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 4 Squad Slots (Live Real Players + Optional AI) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="lobby-slots-container"></div>
+
+            <!-- Public Active Rooms Discovery -->
+            <div class="space-y-2 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
+                <div class="flex justify-between items-center text-xs font-bold text-cyan-400">
+                    <span><i class="fa-solid fa-tower-broadcast mr-1.5 animate-pulse"></i>線上公開戰局大廳 (點擊即刻加入真人隊伍)</span>
+                    <span id="public-rooms-count" class="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full text-[10px]">0 房線上</span>
+                </div>
+                <div id="public-rooms-list" class="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-500 text-center py-2">正在搜尋線上真人房間...</div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-between items-center gap-3 pt-1">
+                <span id="mp-lobby-status-hint" class="text-xs text-emerald-400 font-bold">
+                    <i class="fa-solid fa-circle-check mr-1"></i>即時雲端同步已就緒
+                </span>
+                <div class="flex gap-2.5 ml-auto">
+                    <button onclick="closeLobbyModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700">返回</button>
+                    <button id="btn-start-mp-match" onclick="startMultiplayerMatch()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20">
+                        全員就緒·啟動真人戰鬥
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Friends & Pending Requests Modal -->
+    <div id="friends-modal" class="hidden fixed inset-0 z-[85] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-white max-h-[88vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-black text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-user-group"></i> 戰術好友與組隊邀請
+                </h3>
+                <button onclick="closeFriendsModal()" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div class="flex gap-2">
+                <input id="input-friend-search" onkeydown="if(event.key==='Enter') sendFriendRequest()" type="text" placeholder="輸入好友暱稱或 Email..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <button onclick="sendFriendRequest()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shrink-0">發送邀請</button>
+            </div>
+            <div class="space-y-2">
+                <div class="text-xs font-bold text-amber-400 flex items-center justify-between">
+                    <span>待審核邀請</span>
+                    <span id="pending-count-tag" class="bg-amber-500/20 px-2 py-0.5 rounded-full text-[10px]">0</span>
+                </div>
+                <div id="pending-requests-container" class="space-y-1.5"></div>
+            </div>
+            <div class="space-y-2">
+                <div class="text-xs font-bold text-emerald-400 flex items-center justify-between">
+                    <span>已驗證好友名單</span>
+                    <span id="accepted-count-tag" class="bg-emerald-500/20 px-2 py-0.5 rounded-full text-[10px]">0</span>
+                </div>
+                <div id="friends-list-container" class="space-y-1.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Standalone Game, Platform & Real-Time Firebase Multiplayer Engine -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global user reference safety
+        window.user = null;
+        window.currentUser = null;
+
+        let app = null;
+        let auth = null;
+        let db = null;
+        let firebaseUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'zombie-havoc-bright';
+
+        // ==========================================
+        // 1. SAVE DATA & CLOUD/LOCAL PERSISTENCE
+        // ==========================================
+        const SAVE_STORAGE_KEY = 'zombie_havoc_bright_save_v6';
+
+        window.userSaveData = {
+            bioTokens: 100,
+            displayName: "特勤員",
+            email: "",
+            photoURL: "https://placehold.co/40x40/10b981/ffffff?text=G",
+            isGoogleLoggedIn: false,
+            difficulty: "novice",
+            upgrades: { maxHp: 0, damage: 0, speed: 0, reload: 0, tokenBonus: 0 },
+            attachments: { nanoArmor: false, laserSight: false, extMag: false, vampireCore: false },
+            pendingRequests: [],
+            acceptedFriends: []
+        };
+
+        function loadLocalSave() {
+            try {
+                const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    window.userSaveData = Object.assign({}, window.userSaveData, parsed);
+                    window.userSaveData.upgrades = Object.assign({ maxHp: 0, damage: 0, speed: 0, reload: 0, tokenBonus: 0 }, parsed.upgrades || {});
+                    window.userSaveData.attachments = Object.assign({ nanoArmor: false, laserSight: false, extMag: false, vampireCore: false }, parsed.attachments || {});
+                    if (!Array.isArray(window.userSaveData.pendingRequests)) window.userSaveData.pendingRequests = [];
+                    if (!Array.isArray(window.userSaveData.acceptedFriends)) window.userSaveData.acceptedFriends = [];
+                }
+            } catch (e) {
+                console.warn("Local save load skipped:", e);
+            }
+        }
+
+        function persistSaveData() {
+            updateTokenDisplays();
+            try {
+                localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(window.userSaveData));
+            } catch (e) {
+                console.warn("Local save write skipped:", e);
+            }
+            if (db && firebaseUser) {
+                setDoc(doc(db, 'artifacts', appId, 'users', firebaseUser.uid, 'profile', 'saveData'), {
+                    ...window.userSaveData,
+                    updatedAt: Date.now()
+                }, { merge: true }).catch(() => {});
+            }
+        }
+
+        window.manualSaveProgress = function() {
+            persistSaveData();
+            showNotification("進度已儲存", "您的生物點數、天賦與裝備進度已安全寫入存檔！", "success");
+        };
+
+        function updateTokenDisplays() {
+            const el = document.getElementById('lobby-bio-tokens');
+            if (el) {
+                el.textContent = Math.floor(window.userSaveData.bioTokens || 0).toLocaleString();
+            }
+        }
+
+        // ==========================================
+        // 2. NOTIFICATION BANNER SYSTEM
+        // ==========================================
+        let notifTimer = null;
+        window.showNotification = function(title, message, type = 'success') {
+            const modal = document.getElementById('notification-modal');
+            const titleEl = document.getElementById('notif-title');
+            const msgEl = document.getElementById('notif-message');
+            const iconBox = document.getElementById('notif-icon-box');
+            const iconEl = document.getElementById('notif-icon');
+            if (!modal) return;
+
+            if (titleEl) titleEl.textContent = title;
+            if (msgEl) msgEl.textContent = message;
+
+            if (type === 'error') {
+                modal.className = "fixed top-6 right-6 z-[120] max-w-sm w-full bg-slate-900/95 border-2 border-red-500 text-white shadow-2xl rounded-2xl p-4 transition-all duration-300";
+                if (iconBox) iconBox.className = "w-10 h-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center text-xl shrink-0";
+                if (iconEl) iconEl.className = "fa-solid fa-triangle-exclamation";
+            } else if (type === 'info') {
+                modal.className = "fixed top-6 right-6 z-[120] max-w-sm w-full bg-slate-900/95 border-2 border-cyan-500 text-white shadow-2xl rounded-2xl p-4 transition-all duration-300";
+                if (iconBox) iconBox.className = "w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl shrink-0";
+                if (iconEl) iconEl.className = "fa-solid fa-circle-info";
+            } else {
+                modal.className = "fixed top-6 right-6 z-[120] max-w-sm w-full bg-slate-900/95 border-2 border-emerald-500 text-white shadow-2xl rounded-2xl p-4 transition-all duration-300";
+                if (iconBox) iconBox.className = "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shrink-0";
+                if (iconEl) iconEl.className = "fa-solid fa-circle-check";
+            }
+
+            modal.classList.remove('hidden');
+            if (notifTimer) clearTimeout(notifTimer);
+            notifTimer = setTimeout(() => {
+                closeNotification();
+            }, 3600);
+        };
+
+        window.closeNotification = function() {
+            const modal = document.getElementById('notification-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        // ==========================================
+        // 3. GOOGLE LOGIN & PROFILE EDITING
+        // ==========================================
+        window.openGoogleLoginModal = function() {
+            const modal = document.getElementById('google-login-modal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeGoogleLoginModal = function() {
+            const modal = document.getElementById('google-login-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.loginWithGoogle = async function() {
+            if (!auth) {
+                showNotification("提示", "此預覽環境未啟用彈窗授權，請直接輸入您的 Google Email 綁定登入！", "info");
+                return;
+            }
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                const gUser = result.user;
+                window.user = gUser;
+                window.currentUser = gUser;
+                firebaseUser = gUser;
+                window.userSaveData.isGoogleLoggedIn = true;
+                window.userSaveData.email = gUser.email || "";
+                if (gUser.displayName) window.userSaveData.displayName = gUser.displayName;
+                if (gUser.photoURL) window.userSaveData.photoURL = gUser.photoURL;
+                persistSaveData();
+                window.updateAuthUI();
+                closeGoogleLoginModal();
+                showNotification("Google 帳號已登入", `歡迎回來，${window.userSaveData.displayName}！`, "success");
+            } catch (err) {
+                showNotification("彈窗受瀏覽器限制", "請在下方直接輸入您的 Google Email 完成一鍵綁定登入！", "info");
+            }
+        };
+
+        window.submitGoogleEmailLogin = function() {
+            const input = document.getElementById('input-google-nickname');
+            const emailVal = input ? input.value.trim() : "";
+            if (!emailVal || !emailVal.includes('@')) {
+                showNotification("格式錯誤", "請輸入有效的 Google Email（例如 name@gmail.com）", "error");
+                return;
+            }
+            const prefixName = emailVal.split('@')[0];
+            window.userSaveData.isGoogleLoggedIn = true;
+            window.userSaveData.email = emailVal;
+            if (!window.userSaveData.displayName || window.userSaveData.displayName === "特勤員") {
+                window.userSaveData.displayName = prefixName;
+            }
+            window.userSaveData.photoURL = `https://placehold.co/40x40/10b981/ffffff?text=${encodeURIComponent(prefixName.charAt(0).toUpperCase())}`;
+            persistSaveData();
+            window.updateAuthUI();
+            closeGoogleLoginModal();
+            showNotification("Google 帳號綁定成功", `已連線帳號：${emailVal}`, "success");
+        };
+
+        window.logoutGoogle = async function() {
+            if (auth && firebaseUser && !firebaseUser.isAnonymous) {
+                try {
+                    await signOut(auth);
+                    await signInAnonymously(auth);
+                } catch (e) {}
+            }
+            window.userSaveData.isGoogleLoggedIn = false;
+            window.userSaveData.email = "";
+            persistSaveData();
+            window.updateAuthUI();
+            showNotification("已登出", "您已安全登出 Google 帳號。", "info");
+        };
+
+        window.openProfileModal = function() {
+            const input = document.getElementById('input-new-displayname');
+            if (input) input.value = window.userSaveData.displayName || "";
+            const modal = document.getElementById('profile-modal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeProfileModal = function() {
+            const modal = document.getElementById('profile-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.saveNewDisplayName = function() {
+            const input = document.getElementById('input-new-displayname');
+            const newName = input ? input.value.trim() : "";
+            if (!newName) {
+                showNotification("無法儲存", "暱稱不能為空白！", "error");
+                return;
+            }
+            window.userSaveData.displayName = newName;
+            persistSaveData();
+            window.updateAuthUI();
+            closeProfileModal();
+            showNotification("暱稱已更新", `您的新戰術代號為「${newName}」！`, "success");
+        };
+
+        window.updateAuthUI = function() {
+            const loginBtn = document.getElementById('btn-google-login');
+            const profileBadge = document.getElementById('user-profile-badge');
+            const avatarEl = document.getElementById('user-avatar');
+            const nameEl = document.getElementById('user-display-name');
+            const emailLabelEl = document.getElementById('user-account-code-label');
+
+            if (window.userSaveData.isGoogleLoggedIn) {
+                if (loginBtn) loginBtn.classList.add('hidden');
+                if (profileBadge) profileBadge.classList.remove('hidden');
+                if (avatarEl) avatarEl.src = window.userSaveData.photoURL || "https://placehold.co/40x40/10b981/ffffff?text=G";
+                if (nameEl) nameEl.textContent = window.userSaveData.displayName || "特勤員";
+                if (emailLabelEl) emailLabelEl.textContent = window.userSaveData.email || "Google 已連線";
+            } else {
+                if (loginBtn) loginBtn.classList.remove('hidden');
+                if (profileBadge) profileBadge.classList.add('hidden');
+            }
+            renderLobbySlots();
+        };
+
+        // ==========================================
+        // 4. REAL-TIME FIREBASE MULTIPLAYER LOBBY & FRIENDS
+        // ==========================================
+        window.mpState = {
+            uid: null,
+            roomCode: null,
+            isHost: false,
+            roomPlayers: [],
+            lastSyncTime: 0,
+            unsubRoom: null,
+            unsubPlayers: null,
+            unsubPublicRooms: null
+        };
+
+        const remotePlayersMap = {};
+
+        async function initFirebaseMultiplayer() {
+            try {
+                const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                if (!config) {
+                    window.mpState.uid = 'LOCAL-' + Math.floor(1000 + Math.random() * 9000);
+                    const uidEl = document.getElementById('mp-my-uid');
+                    if (uidEl) uidEl.textContent = window.mpState.uid;
+                    return;
+                }
+                app = initializeApp(config);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, async (u) => {
+                    if (!u) return;
+                    firebaseUser = u;
+                    window.user = u;
+                    window.currentUser = u;
+                    window.mpState.uid = u.uid;
+
+                    const uidEl = document.getElementById('mp-my-uid');
+                    if (uidEl) uidEl.textContent = u.uid.slice(0, 12) + '...';
+
+                    // Load cloud save data if available
+                    try {
+                        const snap = await getDoc(doc(db, 'artifacts', appId, 'users', u.uid, 'profile', 'saveData'));
+                        if (snap.exists()) {
+                            const cloudData = snap.data();
+                            window.userSaveData = Object.assign({}, window.userSaveData, cloudData);
+                            window.userSaveData.bioTokens = Math.max(window.userSaveData.bioTokens || 0, cloudData.bioTokens || 0);
+                            updateTokenDisplays();
+                            window.updateAuthUI();
+                            updateDifficultyCardsUI();
+                            renderShowcaseGrids();
+                            refreshFriendsDisplay();
+                        }
+                    } catch (e) {}
+
+                    subscribePublicRooms();
+                });
+            } catch (err) {
+                console.warn("Firebase init fallback:", err);
+                window.mpState.uid = 'LOCAL-' + Math.floor(1000 + Math.random() * 9000);
+            }
+        }
+
+        function subscribePublicRooms() {
+            if (!db) return;
+            if (window.mpState.unsubPublicRooms) window.mpState.unsubPublicRooms();
+            const roomsCol = collection(db, 'artifacts', appId, 'public', 'data', 'mp_rooms');
+            window.mpState.unsubPublicRooms = onSnapshot(roomsCol, (snapshot) => {
+                const now = Date.now();
+                const activeRooms = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data && data.roomCode && (now - (data.updatedAt || 0) < 15 * 60 * 1000)) {
+                        activeRooms.push(data);
+                    }
+                });
+                const countEl = document.getElementById('public-rooms-count');
+                const listEl = document.getElementById('public-rooms-list');
+                if (countEl) countEl.textContent = `${activeRooms.length} 房線上`;
+                if (!listEl) return;
+
+                if (activeRooms.length === 0) {
+                    listEl.innerHTML = `<div class="text-xs text-slate-500 text-center py-2">目前無其他公開房間，您可以直接分享上方 6 位數房號邀請朋友加入！</div>`;
+                    return;
+                }
+
+                listEl.innerHTML = activeRooms.map(r => {
+                    const isCurrent = r.roomCode === window.mpState.roomCode;
+                    return `
+                        <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 px-3 py-2 rounded-xl text-xs">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="font-mono font-black text-lime-400">#${r.roomCode}</span>
+                                <span class="text-slate-300 font-bold truncate">${r.hostName || '特勤隊長'} 的戰局</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300">${r.status === 'playing' ? '戰鬥中' : '組隊中'}</span>
+                            </div>
+                            ${isCurrent
+                                ? `<span class="text-[10px] text-emerald-400 font-bold shrink-0">當前房間</span>`
+                                : `<button onclick="joinRoomByCode('${r.roomCode}')" class="px-3 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-[11px] shrink-0">加入</button>`
+                            }
+                        </div>
+                    `;
+                }).join('');
+            }, () => {});
+        }
+
+        function subscribeToRoom(roomCode) {
+            if (!db || !roomCode) return;
+            if (window.mpState.unsubRoom) window.mpState.unsubRoom();
+            if (window.mpState.unsubPlayers) window.mpState.unsubPlayers();
+
+            // Listen to room status changes (auto-launch when host starts match!)
+            const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'mp_rooms', roomCode);
+            window.mpState.unsubRoom = onSnapshot(roomDocRef, (snap) => {
+                if (!snap.exists()) return;
+                const data = snap.data();
+                if (data.status === 'playing' && !window.mpState.isHost && !gameState.active) {
+                    showNotification("房主已啟動戰鬥", "正在同步進入 3D 多人戰場！", "success");
+                    launchGameEngine('multiplayer');
+                }
+            }, () => {});
+
+            // Listen to all players inside this room
+            const playersCol = collection(db, 'artifacts', appId, 'public', 'data', 'mp_players');
+            const q = query(playersCol, where('roomCode', '==', roomCode));
+            window.mpState.unsubPlayers = onSnapshot(q, (snapshot) => {
+                const now = Date.now();
+                const list = [];
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    if (p && (now - (p.updatedAt || 0) < 5 * 60 * 1000)) {
+                        list.push(p);
+                    }
+                });
+                window.mpState.roomPlayers = list;
+                renderLobbySlots();
+                updateSquadLiveHUD();
+            }, () => {});
+        }
+
+        window.createNewMultiplayerRoom = async function() {
+            leaveCurrentMultiplayerRoom();
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            window.mpState.roomCode = code;
+            window.mpState.isHost = true;
+            window.mpState.roomPlayers = [];
+
+            const codeEl = document.getElementById('mp-current-room-code');
+            if (codeEl) codeEl.textContent = code;
+
+            if (db && firebaseUser) {
+                const hostName = window.userSaveData.displayName || "特勤員";
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_rooms', code), {
+                        roomCode: code,
+                        hostUid: firebaseUser.uid,
+                        hostName,
+                        status: 'waiting',
+                        updatedAt: Date.now()
+                    });
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_players', `${code}_${firebaseUser.uid}`), {
+                        roomCode: code,
+                        uid: firebaseUser.uid,
+                        name: hostName,
+                        x: 0,
+                        y: 0,
+                        z: 12,
+                        yaw: 0,
+                        hp: 100,
+                        maxHp: 100,
+                        updatedAt: Date.now()
+                    });
+                    subscribeToRoom(code);
+                } catch (e) {}
+            }
+            renderLobbySlots();
+        };
+
+        window.joinRoomByCode = async function(codeOverride) {
+            const input = document.getElementById('input-join-room-code');
+            const code = (codeOverride || (input ? input.value.trim() : "")).toUpperCase();
+            if (!code || code.length < 4) {
+                showNotification("房號錯誤", "請輸入正確的 6 位數房間代碼！", "error");
+                return;
+            }
+            if (!db || !firebaseUser) {
+                showNotification("連線尚未就緒", "請稍候雲端驗證完成再加入房間。", "error");
+                return;
+            }
+            try {
+                const roomSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_rooms', code));
+                if (!roomSnap.exists()) {
+                    showNotification("找不到房間", `房間代碼「${code}」不存在或已關閉。`, "error");
+                    return;
+                }
+                leaveCurrentMultiplayerRoom();
+                window.mpState.roomCode = code;
+                window.mpState.isHost = (roomSnap.data().hostUid === firebaseUser.uid);
+
+                const codeEl = document.getElementById('mp-current-room-code');
+                if (codeEl) codeEl.textContent = code;
+                if (input) input.value = "";
+
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_players', `${code}_${firebaseUser.uid}`), {
+                    roomCode: code,
+                    uid: firebaseUser.uid,
+                    name: window.userSaveData.displayName || "特勤員",
+                    x: 2,
+                    y: 0,
+                    z: 12,
+                    yaw: 0,
+                    hp: 100,
+                    maxHp: 100,
+                    updatedAt: Date.now()
+                });
+
+                subscribeToRoom(code);
+                showNotification("成功加入真人房間", `已連線至戰術小隊 #${code}！`, "success");
+
+                if (roomSnap.data().status === 'playing') {
+                    launchGameEngine('multiplayer');
+                }
+            } catch (e) {
+                showNotification("加入失敗", "無法連線至該房間，請稍後再試。", "error");
+            }
+        };
+
+        window.copyRoomCode = function() {
+            const code = window.mpState.roomCode;
+            if (!code) return;
+            const tempInput = document.createElement('input');
+            tempInput.value = code;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showNotification("已複製房號", `房間代碼「${code}」已複製，快傳給朋友加入吧！`, "success");
+            } catch (e) {
+                showNotification("房號提示", `您的房間代碼為：${code}`, "info");
+            }
+            document.body.removeChild(tempInput);
+        };
+
+        window.leaveCurrentMultiplayerRoom = function() {
+            if (window.mpState.unsubRoom) {
+                window.mpState.unsubRoom();
+                window.mpState.unsubRoom = null;
+            }
+            if (window.mpState.unsubPlayers) {
+                window.mpState.unsubPlayers();
+                window.mpState.unsubPlayers = null;
+            }
+            if (db && firebaseUser && window.mpState.roomCode) {
+                const oldCode = window.mpState.roomCode;
+                deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_players', `${oldCode}_${firebaseUser.uid}`)).catch(() => {});
+                if (window.mpState.isHost) {
+                    deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_rooms', oldCode)).catch(() => {});
+                }
+            }
+            window.mpState.roomCode = null;
+            window.mpState.isHost = false;
+            window.mpState.roomPlayers = [];
+        };
+
+        window.startMultiplayerMatch = async function() {
+            if (db && firebaseUser && window.mpState.roomCode && window.mpState.isHost) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_rooms', window.mpState.roomCode), {
+                        status: 'playing',
+                        updatedAt: Date.now()
+                    }, { merge: true });
+                } catch (e) {}
+            }
+            launchGameEngine('multiplayer');
+        };
+
+        window.openFriendsModal = function() {
+            refreshFriendsDisplay();
+            const modal = document.getElementById('friends-modal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeFriendsModal = function() {
+            const modal = document.getElementById('friends-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        function refreshFriendsDisplay() {
+            const pendingList = window.userSaveData.pendingRequests || [];
+            const acceptedList = window.userSaveData.acceptedFriends || [];
+
+            const badge = document.getElementById('friends-badge-count');
+            if (badge) {
+                if (pendingList.length > 0) {
+                    badge.textContent = pendingList.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+
+            const pendingTag = document.getElementById('pending-count-tag');
+            if (pendingTag) pendingTag.textContent = pendingList.length;
+
+            const acceptedTag = document.getElementById('accepted-count-tag');
+            if (acceptedTag) acceptedTag.textContent = acceptedList.length;
+
+            const pendingContainer = document.getElementById('pending-requests-container');
+            if (pendingContainer) {
+                if (pendingList.length === 0) {
+                    pendingContainer.innerHTML = `<div class="text-xs text-slate-500 py-2">目前無待審核邀請</div>`;
+                } else {
+                    pendingContainer.innerHTML = pendingList.map(r => `
+                        <div class="flex items-center justify-between bg-slate-950 border border-amber-500/30 px-3 py-2 rounded-xl text-xs">
+                            <span class="font-bold text-slate-200">${r.name}</span>
+                            <div class="flex gap-1.5">
+                                <button onclick="acceptFriendRequest('${r.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">確認</button>
+                                <button onclick="declineFriendRequest('${r.id}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">移除</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            const friendsContainer = document.getElementById('friends-list-container');
+            if (friendsContainer) {
+                if (acceptedList.length === 0) {
+                    friendsContainer.innerHTML = `<div class="text-xs text-slate-500 py-2">尚未加入任何好友，上方輸入暱稱即可發送邀請！</div>`;
+                } else {
+                    friendsContainer.innerHTML = acceptedList.map(f => `
+                        <div class="flex items-center justify-between bg-slate-950 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                <span class="font-bold text-white">${f.name}</span>
+                            </div>
+                            <button onclick="inviteFriendFromList('${f.name}')" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold">+ 邀請組隊</button>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        window.sendFriendRequest = function() {
+            const input = document.getElementById('input-friend-search');
+            const target = input ? input.value.trim() : "";
+            if (!target) {
+                showNotification("請輸入對象", "請輸入好友的暱稱或 Email。", "error");
+                return;
+            }
+            const newReq = {
+                id: 'req_' + Date.now(),
+                name: target
+            };
+            window.userSaveData.pendingRequests.unshift(newReq);
+            if (input) input.value = "";
+            persistSaveData();
+            refreshFriendsDisplay();
+            showNotification("好友邀請已發送", `已向「${target}」發送邀請，可在待審核列表確認！`, "success");
+        };
+
+        window.acceptFriendRequest = function(reqId) {
+            const idx = window.userSaveData.pendingRequests.findIndex(r => r.id === reqId);
+            if (idx === -1) return;
+            const req = window.userSaveData.pendingRequests.splice(idx, 1)[0];
+            window.userSaveData.acceptedFriends.unshift({
+                id: 'fr_' + Date.now(),
+                name: req.name,
+                status: '線上備戰'
+            });
+            persistSaveData();
+            refreshFriendsDisplay();
+            showNotification("已成為好友", `${req.name} 已加入您的戰術好友名單！`, "success");
+        };
+
+        window.declineFriendRequest = function(reqId) {
+            window.userSaveData.pendingRequests = window.userSaveData.pendingRequests.filter(r => r.id !== reqId);
+            persistSaveData();
+            refreshFriendsDisplay();
+            showNotification("已移除邀請", "已拒絕並移除該筆好友申請。", "info");
+        };
+
+        const lobbySlots = [
+            { type: 'empty', name: '空位 (點擊加入 AI 隊友)' },
+            { type: 'empty', name: '空位 (點擊加入 AI 隊友)' },
+            { type: 'empty', name: '空位 (點擊加入 AI 隊友)' }
+        ];
+
+        window.openLobbyModal = async function() {
+            renderLobbySlots();
+            document.getElementById('lobby-4player-modal').classList.remove('hidden');
+            if (!window.mpState.roomCode && db && firebaseUser) {
+                await createNewMultiplayerRoom();
+            }
+        };
+
+        window.closeLobbyModal = function() {
+            document.getElementById('lobby-4player-modal').classList.add('hidden');
+        };
+
+        window.inviteFriendFromList = function(friendName) {
+            const emptyIdx = lobbySlots.findIndex(s => s.type === 'empty');
+            const targetIdx = emptyIdx !== -1 ? emptyIdx : 2;
+            lobbySlots[targetIdx] = { type: 'friend', name: friendName };
+            closeFriendsModal();
+            openLobbyModal();
+            showNotification("已邀請進入大廳", `${friendName} 已加入 4 人戰術小隊！`, "success");
+        };
+
+        window.toggleLobbySlot = function(idx) {
+            const aiNames = ['AI 突擊兵 Alpha', 'AI 醫護兵 Bravo', 'AI 重裝手 Charlie'];
+            if (lobbySlots[idx].type === 'empty') {
+                lobbySlots[idx] = { type: 'ai', name: aiNames[idx] || 'AI 戰術隊員' };
+            } else {
+                lobbySlots[idx] = { type: 'empty', name: '空位 (點擊加入 AI 隊友)' };
+            }
+            renderLobbySlots();
+        };
+
+        function renderLobbySlots() {
+            const container = document.getElementById('lobby-slots-container');
+            if (!container) return;
+            const hostName = window.userSaveData.displayName || "特勤員";
+
+            // Gather live real human teammates in the same room (excluding self)
+            const remoteHumans = (window.mpState.roomPlayers || []).filter(p => p.uid !== window.mpState.uid);
+
+            let html = `
+                <div class="bg-slate-950 border-2 border-emerald-500 p-3.5 rounded-2xl flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-black shrink-0">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-[10px] text-emerald-400 font-bold uppercase">SLOT 1 · 真人玩家 (你)</div>
+                        <div class="font-black text-sm text-white truncate">${hostName}</div>
+                    </div>
+                </div>
+            `;
+
+            for (let i = 0; i < 3; i++) {
+                const realPlayer = remoteHumans[i];
+                if (realPlayer) {
+                    html += `
+                        <div class="bg-slate-950 border-2 border-lime-400 p-3.5 rounded-2xl flex items-center justify-between gap-2 shadow-md shadow-lime-400/10">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-11 h-11 rounded-xl bg-lime-400/20 text-lime-300 flex items-center justify-center text-xl shrink-0">
+                                    <i class="fa-solid fa-user-astronaut"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[10px] text-lime-400 font-black uppercase flex items-center gap-1">
+                                        <span class="w-2 h-2 rounded-full bg-lime-400 animate-ping"></span>
+                                        SLOT ${i + 2} · 真人連線隊友
+                                    </div>
+                                    <div class="font-black text-sm text-white truncate">${realPlayer.name}</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] px-2 py-1 rounded-lg bg-lime-400/20 text-lime-300 font-black shrink-0">已連線</span>
+                        </div>
+                    `;
+                } else {
+                    const slot = lobbySlots[i];
+                    const isFilled = slot.type !== 'empty';
+                    html += `
+                        <div onclick="toggleLobbySlot(${i})" class="cursor-pointer bg-slate-950 border ${isFilled ? 'border-cyan-500/50' : 'border-slate-800 border-dashed'} hover:border-emerald-400 p-3.5 rounded-2xl flex items-center justify-between transition">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-11 h-11 rounded-xl ${isFilled ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-900 text-slate-500'} flex items-center justify-center text-xl shrink-0">
+                                    <i class="fa-solid ${slot.type === 'friend' ? 'fa-user-shield' : (slot.type === 'ai' ? 'fa-robot' : 'fa-plus')}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-[10px] ${isFilled ? 'text-cyan-400' : 'text-slate-500'} font-bold uppercase">SLOT ${i + 2} · ${slot.type === 'ai' ? '3D AI 隊友' : '等待真人或 AI'}</div>
+                                    <div class="font-bold text-xs text-white truncate">${slot.name}</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] px-2 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold shrink-0">${isFilled ? '移除' : '+ AI'}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 5. WEAPONS, DIFFICULTY, UPGRADES & ATTACHMENTS DATA
+        // ==========================================
+        const WEAPONS_CONFIG = [
+            { id: 0, key: '1', name: '戰術手槍', icon: 'fa-gun', damage: 28, fireRate: 220, clipSize: 15, reserve: 999, reloadTime: 1000, spread: 0.012, pellets: 1, auto: false, unlocked: true, cost: 0, color: '#94a3b8', type: 'bullet' },
+            { id: 1, key: '2', name: '16發散彈槍', icon: 'fa-burst', damage: 16, fireRate: 750, clipSize: 8, reserve: 64, reloadTime: 1500, spread: 0.11, pellets: 16, auto: false, unlocked: true, cost: 0, color: '#f97316', type: 'shotgun' },
+            { id: 2, key: '3', name: '疾風衝鋒槍', icon: 'fa-bolt', damage: 19, fireRate: 85, clipSize: 40, reserve: 240, reloadTime: 1200, spread: 0.032, pellets: 1, auto: true, unlocked: true, cost: 0, color: '#38bdf8', type: 'bullet' },
+            { id: 3, key: '4', name: 'M4A1 步槍', icon: 'fa-crosshairs', damage: 32, fireRate: 130, clipSize: 30, reserve: 180, reloadTime: 1400, spread: 0.016, pellets: 1, auto: true, unlocked: true, cost: 0, color: '#10b981', type: 'bullet' },
+            { id: 4, key: '5', name: '巴雷特狙擊槍', icon: 'fa-bullseye', damage: 165, fireRate: 900, clipSize: 5, reserve: 35, reloadTime: 1800, spread: 0.001, pellets: 1, auto: false, unlocked: false, cost: 150, color: '#eab308', type: 'sniper' },
+            { id: 5, key: '6', name: 'M32 榴彈槍', icon: 'fa-bomb', damage: 140, fireRate: 850, clipSize: 6, reserve: 30, reloadTime: 1900, spread: 0.02, pellets: 1, auto: false, unlocked: false, cost: 250, color: '#ef4444', type: 'grenade' },
+            { id: 6, key: '7', name: '等離子光能槍', icon: 'fa-atom', damage: 115, fireRate: 450, clipSize: 12, reserve: 72, reloadTime: 1600, spread: 0.005, pellets: 1, auto: true, unlocked: false, cost: 350, color: '#06b6d4', type: 'plasma' },
+            { id: 7, key: '8', name: '火神旋轉機槍', icon: 'fa-fire-flame-curved', damage: 24, fireRate: 55, clipSize: 120, reserve: 480, reloadTime: 2400, spread: 0.042, pellets: 1, auto: true, unlocked: false, cost: 500, color: '#a855f7', type: 'bullet' }
+        ];
+
+        const DIFFICULTY_SETTINGS = {
+            novice: { label: '新手', hp: 150, spawnRate: 2600, maxZombies: 10, zombieHpMult: 0.8, scoreMult: 0.8 },
+            easy:   { label: '簡單', hp: 120, spawnRate: 2100, maxZombies: 14, zombieHpMult: 1.0, scoreMult: 1.0 },
+            normal: { label: '普通', hp: 100, spawnRate: 1700, maxZombies: 18, zombieHpMult: 1.2, scoreMult: 1.2 },
+            hard:   { label: '困難', hp: 80,  spawnRate: 1300, maxZombies: 24, zombieHpMult: 1.5, scoreMult: 1.5 }
+        };
+
+        const GENE_UPGRADES_META = [
+            { key: 'maxHp', name: '強化體魄', icon: 'fa-heart-pulse', color: 'text-red-400', desc: '每級 +25 最大生命', baseCost: 30, maxLv: 10 },
+            { key: 'damage', name: '基因狂暴', icon: 'fa-fire', color: 'text-amber-400', desc: '每級 +12% 全武器傷害', baseCost: 40, maxLv: 10 },
+            { key: 'speed', name: '神經加速', icon: 'fa-person-running', color: 'text-emerald-400', desc: '每級 +8% 移動速度', baseCost: 35, maxLv: 8 },
+            { key: 'reload', name: '戰術快手', icon: 'fa-rotate', color: 'text-cyan-400', desc: '每級 +10% 換彈速度', baseCost: 35, maxLv: 8 },
+            { key: 'tokenBonus', name: '基因萃取', icon: 'fa-dna', color: 'text-purple-400', desc: '每級 +1 額外擊殺點數', baseCost: 50, maxLv: 10 }
+        ];
+
+        const ATTACHMENTS_META = [
+            { key: 'nanoArmor', name: '奈米反應護甲', icon: 'fa-shield-halved', color: 'text-cyan-400', desc: '開局自動獲得 50 點能量護盾', cost: 120 },
+            { key: 'laserSight', name: '戰術雷射模組', icon: 'fa-crosshairs', color: 'text-emerald-400', desc: '減少 30% 射擊彈道擴散', cost: 100 },
+            { key: 'extMag', name: '雙倍擴容彈匣', icon: 'fa-layer-group', color: 'text-amber-400', desc: '所有槍械彈匣容量 +35%', cost: 150 },
+            { key: 'vampireCore', name: '生化吸血核心', icon: 'fa-droplet', color: 'text-rose-400', desc: '每次擊殺回復 3 點生命值', cost: 180 }
+        ];
+
+        window.selectDifficulty = function(diffKey) {
+            if (!DIFFICULTY_SETTINGS[diffKey]) return;
+            window.userSaveData.difficulty = diffKey;
+            persistSaveData();
+            updateDifficultyCardsUI();
+            showNotification("難度已切換", `已設定為「${DIFFICULTY_SETTINGS[diffKey].label}」難度。`, "info");
+        };
+
+        function updateDifficultyCardsUI() {
+            const current = window.userSaveData.difficulty || 'novice';
+            ['novice', 'easy', 'normal', 'hard'].forEach(key => {
+                const el = document.getElementById(`diff-card-${key}`);
+                if (!el) return;
+                if (key === current) {
+                    el.classList.remove('border-slate-800', 'opacity-80');
+                    el.classList.add('border-emerald-500', 'opacity-100');
+                } else {
+                    el.classList.remove('border-emerald-500', 'opacity-100');
+                    el.classList.add('border-slate-800', 'opacity-80');
+                }
+            });
+        }
+
+        function renderShowcaseGrids() {
+            // Render 8 Weapons Showcase
+            const wGrid = document.getElementById('weapons-showcase-grid');
+            if (wGrid) {
+                wGrid.innerHTML = WEAPONS_CONFIG.map(w => `
+                    <div class="glass-card p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/50 transition space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono text-xs font-black">KEY ${w.key}</span>
+                            <span class="text-[10px] font-bold ${w.unlocked ? 'text-emerald-400' : 'text-amber-400'}">
+                                ${w.unlocked ? '初始解鎖' : `商店 ${w.cost} 分`}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3 pt-1">
+                            <div class="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-lg" style="color:${w.color}">
+                                <i class="fa-solid ${w.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-sm text-white">${w.name}</div>
+                                <div class="text-[11px] text-slate-400 font-mono">傷害 ${w.damage}${w.pellets > 1 ? 'x' + w.pellets : ''} · 彈匣 ${w.clipSize}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Gene Upgrades
+            const uGrid = document.getElementById('upgrades-cards-container');
+            if (uGrid) {
+                uGrid.innerHTML = GENE_UPGRADES_META.map(u => {
+                    const lv = window.userSaveData.upgrades[u.key] || 0;
+                    const cost = u.baseCost + lv * 20;
+                    const isMax = lv >= u.maxLv;
+                    return `
+                        <div class="glass-card p-4 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3">
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center">
+                                    <i class="fa-solid ${u.icon} ${u.color} text-xl"></i>
+                                    <span class="text-xs font-mono font-bold text-slate-300">Lv.${lv}/${u.maxLv}</span>
+                                </div>
+                                <div class="font-black text-sm text-white">${u.name}</div>
+                                <div class="text-[11px] text-slate-400">${u.desc}</div>
+                            </div>
+                            <button onclick="buyGeneUpgrade('${u.key}')" ${isMax ? 'disabled' : ''} class="w-full py-2 rounded-xl ${isMax ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'} font-black text-xs transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-dna"></i>
+                                <span>${isMax ? '已達滿級' : `${cost} 點升級`}</span>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render Armor & Attachments
+            const aGrid = document.getElementById('attachments-cards-container');
+            if (aGrid) {
+                aGrid.innerHTML = ATTACHMENTS_META.map(a => {
+                    const owned = !!window.userSaveData.attachments[a.key];
+                    return `
+                        <div class="glass-card p-4 rounded-2xl border ${owned ? 'border-cyan-500/60' : 'border-slate-800'} flex flex-col justify-between space-y-3">
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center">
+                                    <i class="fa-solid ${a.icon} ${a.color} text-xl"></i>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${owned ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'}">${owned ? '已裝備' : '未解鎖'}</span>
+                                </div>
+                                <div class="font-black text-sm text-white">${a.name}</div>
+                                <div class="text-[11px] text-slate-400">${a.desc}</div>
+                            </div>
+                            <button onclick="buyAttachment('${a.key}')" ${owned ? 'disabled' : ''} class="w-full py-2 rounded-xl ${owned ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/40' : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'} font-black text-xs transition">
+                                ${owned ? '✓ 核心啟動中' : `${a.cost} 點解鎖`}
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        window.buyGeneUpgrade = function(key) {
+            const meta = GENE_UPGRADES_META.find(m => m.key === key);
+            if (!meta) return;
+            const lv = window.userSaveData.upgrades[key] || 0;
+            if (lv >= meta.maxLv) return;
+            const cost = meta.baseCost + lv * 20;
+            if (window.userSaveData.bioTokens < cost) {
+                showNotification("生物點數不足", `需要 ${cost} 點生物點數，進入戰場擊殺殭屍即可無限獲取！`, "error");
+                return;
+            }
+            window.userSaveData.bioTokens -= cost;
+            window.userSaveData.upgrades[key] = lv + 1;
+            persistSaveData();
+            renderShowcaseGrids();
+            showNotification("基因強化成功", `${meta.name} 已提升至 Lv.${lv + 1}！`, "success");
+        };
+
+        window.buyAttachment = function(key) {
+            const meta = ATTACHMENTS_META.find(m => m.key === key);
+            if (!meta || window.userSaveData.attachments[key]) return;
+            if (window.userSaveData.bioTokens < meta.cost) {
+                showNotification("生物點數不足", `解鎖「${meta.name}」需要 ${meta.cost} 點生物點數。`, "error");
+                return;
+            }
+            window.userSaveData.bioTokens -= meta.cost;
+            window.userSaveData.attachments[key] = true;
+            persistSaveData();
+            renderShowcaseGrids();
+            showNotification("戰術外掛已安裝", `已永久啟用「${meta.name}」！`, "success");
+        };
+
+        // ==========================================
+        // 6. MOBILE CONTROLS TOGGLE
+        // ==========================================
+        let isMobileMode = false;
+        window.toggleMobileControls = function() {
+            isMobileMode = !isMobileMode;
+            const label = document.getElementById('mobile-toggle-label');
+            const layer = document.getElementById('mobile-controls-layer');
+            if (label) label.textContent = isMobileMode ? '手機模式: ON' : '手機模式: OFF';
+            if (layer) {
+                if (isMobileMode && gameState.active) {
+                    layer.classList.remove('hidden');
+                } else {
+                    layer.classList.add('hidden');
+                }
+            }
+            showNotification("操控模式切換", isMobileMode ? "已開啟手機雙觸控模式 (左搖桿移動 + 右滑動瞄準)" : "已切換為電腦鍵盤滑鼠模式", "info");
+        };
+
+        // ==========================================
+        // 7. 3D TACTICAL FPS GAME ENGINE (THREE.JS)
+        // ==========================================
+        let scene, camera, renderer, animFrameId;
+        let obstacles = [];
+        let zombies = [];
+        let allies = [];
+        let projectiles = [];
+        let particles = [];
+        let weaponMeshGroup = null;
+
+        const gameState = {
+            active: false,
+            mode: 'solo',
+            shopOpen: false,
+            hp: 100,
+            maxHp: 100,
+            shield: 0,
+            maxShield: 50,
+            score: 0,
+            kills: 0,
+            yaw: 0,
+            pitch: 0,
+            pos: new THREE.Vector3(0, 1.7, 0),
+            vel: new THREE.Vector3(),
+            keys: {},
+            isFiring: false,
+            isADS: false,
+            isReloading: false,
+            reloadStart: 0,
+            reloadDuration: 1000,
+            lastFireTime: 0,
+            lastSpawnTime: 0,
+            currentWeaponIdx: 3, // Default M4A1
+            weapons: []
+        };
+
+        window.launchGameEngine = function(mode = 'solo') {
+            try {
+                closeLobbyModal();
+                closeFriendsModal();
+                closeGoogleLoginModal();
+
+                if (typeof THREE === 'undefined') {
+                    showNotification("3D 引擎載入中", "請稍候片刻再點擊開戰。", "error");
+                    return;
+                }
+
+                gameState.mode = mode || 'solo';
+                gameState.active = true;
+                gameState.shopOpen = false;
+
+                // Apply Difficulty & Permanent Gene Upgrades
+                const diff = DIFFICULTY_SETTINGS[window.userSaveData.difficulty || 'novice'];
+                const upg = window.userSaveData.upgrades;
+                const att = window.userSaveData.attachments;
+
+                gameState.maxHp = diff.hp + (upg.maxHp * 25);
+                gameState.hp = gameState.maxHp;
+                gameState.maxShield = att.nanoArmor ? 100 : 50;
+                gameState.shield = att.nanoArmor ? 50 : 0;
+                gameState.score = 0;
+                gameState.kills = 0;
+                gameState.yaw = 0;
+                gameState.pitch = 0;
+                gameState.pos.set(0, 1.7, 12);
+                gameState.isFiring = false;
+                gameState.isADS = false;
+                gameState.isReloading = false;
+
+                // Clone weapon states for this match
+                const magMult = att.extMag ? 1.35 : 1.0;
+                gameState.weapons = WEAPONS_CONFIG.map(w => {
+                    const scaledClip = Math.ceil(w.clipSize * magMult);
+                    return Object.assign({}, w, {
+                        clipSize: scaledClip,
+                        currentClip: scaledClip,
+                        currentReserve: w.reserve === 999 ? 999 : Math.ceil(w.reserve * magMult)
+                    });
+                });
+                gameState.currentWeaponIdx = 3; // M4A1
+
+                // Toggle Views
+                document.getElementById('showcase-view').classList.add('hidden');
+                document.getElementById('game-view').classList.remove('hidden');
+                document.getElementById('in-game-shop-modal').classList.add('hidden');
+                document.getElementById('sniper-scope').classList.add('hidden');
+
+                if (isMobileMode || window.innerWidth < 768) {
+                    isMobileMode = true;
+                    const label = document.getElementById('mobile-toggle-label');
+                    if (label) label.textContent = '手機模式: ON';
+                    document.getElementById('mobile-controls-layer').classList.remove('hidden');
+                } else {
+                    document.getElementById('mobile-controls-layer').classList.add('hidden');
+                }
+
+                initThreeScene();
+                renderWeaponSwitcherHUD();
+                updateGameHUD();
+
+                // Request PointerLock on Desktop
+                if (!isMobileMode && renderer && renderer.domElement && renderer.domElement.requestPointerLock) {
+                    try { renderer.domElement.requestPointerLock(); } catch(e) {}
+                }
+
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                gameLoop();
+            } catch (err) {
+                console.error("Launch error:", err);
+                showNotification("啟動異常", "請重新整理頁面後再試一次。", "error");
+            }
+        };
+
+        window.exitGameToHome = function() {
+            gameState.active = false;
+            gameState.isFiring = false;
+            gameState.isADS = false;
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            if (document.pointerLockElement) {
+                try { document.exitPointerLock(); } catch(e) {}
+            }
+            // Clean up remote player meshes & leave room cleanly
+            Object.keys(remotePlayersMap).forEach(uid => {
+                if (scene && remotePlayersMap[uid].mesh) scene.remove(remotePlayersMap[uid].mesh);
+                delete remotePlayersMap[uid];
+            });
+            leaveCurrentMultiplayerRoom();
+            const squadHud = document.getElementById('squad-live-hud');
+            if (squadHud) squadHud.classList.add('hidden');
+
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('mobile-controls-layer').classList.add('hidden');
+            document.getElementById('in-game-shop-modal').classList.add('hidden');
+            document.getElementById('showcase-view').classList.remove('hidden');
+            persistSaveData();
+            renderShowcaseGrids();
+        };
+
+        window.buildArenaObstacles = function buildArenaObstacles() {
+            if (!scene) return;
+            obstacles = [];
+            const coverSpecs = [
+                // Concrete Tactical Walls
+                { x: -10, z: 4, w: 5, h: 2.4, d: 1.2, color: 0x64748b },
+                { x: 10, z: 4, w: 5, h: 2.4, d: 1.2, color: 0x64748b },
+                { x: 0, z: -8, w: 6, h: 2.4, d: 1.2, color: 0x64748b },
+                // Blue Shipping Containers
+                { x: -18, z: -14, w: 3.4, h: 3.2, d: 8, color: 0x0284c7 },
+                { x: 18, z: -14, w: 3.4, h: 3.2, d: 8, color: 0x0284c7 },
+                { x: -18, z: 16, w: 8, h: 3.2, d: 3.4, color: 0x0d9488 },
+                { x: 18, z: 16, w: 8, h: 3.2, d: 3.4, color: 0x0d9488 },
+                // Sandbag Bunkers
+                { x: -6, z: 16, w: 3.5, h: 1.3, d: 1.2, color: 0xb45309 },
+                { x: 6, z: 16, w: 3.5, h: 1.3, d: 1.2, color: 0xb45309 },
+                { x: 0, z: -22, w: 7, h: 2.8, d: 2, color: 0x475569 }
+            ];
+
+            coverSpecs.forEach(spec => {
+                const geo = new THREE.BoxGeometry(spec.w, spec.h, spec.d);
+                const mat = new THREE.MeshStandardMaterial({ color: spec.color, roughness: 0.7 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(spec.x, spec.h / 2, spec.z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                scene.add(mesh);
+
+                obstacles.push({
+                    mesh,
+                    minX: spec.x - spec.w / 2,
+                    maxX: spec.x + spec.w / 2,
+                    minZ: spec.z - spec.d / 2,
+                    maxZ: spec.z + spec.d / 2,
+                    height: spec.h
+                });
+            });
+        };
+
+        window.buildWeaponViewModel = function buildWeaponViewModel() {
+            if (!camera) return;
+            if (weaponMeshGroup) camera.remove(weaponMeshGroup);
+            weaponMeshGroup = new THREE.Group();
+
+            const w = gameState.weapons[gameState.currentWeaponIdx] || WEAPONS_CONFIG[3];
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
+            const accentMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(w.color), emissive: new THREE.Color(w.color), emissiveIntensity: 0.35 });
+
+            const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.14, 0.55), bodyMat);
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.45, 10), accentMat);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(0, 0.03, -0.42);
+
+            weaponMeshGroup.add(receiver, barrel);
+            weaponMeshGroup.position.set(0.28, -0.24, -0.45);
+            camera.add(weaponMeshGroup);
+        };
+
+        function initThreeScene() {
+            const container = document.getElementById('game-container');
+            container.innerHTML = '';
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x09151e);
+            scene.fog = new THREE.FogExp2(0x09151e, 0.014);
+
+            camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 250);
+            camera.rotation.order = 'YXZ';
+            scene.add(camera);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Bright Tactical Arena Lighting
+            const hemiLight = new THREE.HemisphereLight(0xa7f3d0, 0x1e293b, 1.15);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+            dirLight.position.set(30, 50, 25);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Arena Ground Grid
+            const floorGeo = new THREE.PlaneGeometry(140, 140);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            const gridHelper = new THREE.GridHelper(140, 35, 0x10b981, 0x0f172a);
+            gridHelper.position.y = 0.02;
+            scene.add(gridHelper);
+
+            // Clear old entities
+            obstacles = [];
+            zombies = [];
+            allies = [];
+            projectiles = [];
+            particles = [];
+            Object.keys(remotePlayersMap).forEach(uid => delete remotePlayersMap[uid]);
+
+            // Build Physical Tactical Cover Obstacles (Zero Wall-Clipping)
+            window.buildArenaObstacles();
+
+            // Build 3D First-Person Weapon Viewmodel
+            window.buildWeaponViewModel();
+
+            // Spawn Ground-Level AI Teammates for unfilled slots in Multiplayer Mode
+            if (gameState.mode === 'multiplayer') {
+                const remoteHumansCount = (window.mpState.roomPlayers || []).filter(p => p.uid !== window.mpState.uid).length;
+                lobbySlots.forEach((slot, idx) => {
+                    if (idx >= remoteHumansCount && slot.type !== 'empty') {
+                        spawnAlly(slot.name, idx);
+                    }
+                });
+            }
+
+            // Spawn initial wave of zombies
+            for (let i = 0; i < 6; i++) {
+                spawnZombie();
+            }
+        }
+
+        function checkObstacleCollision(x, z, radius) {
+            // Arena outer boundary
+            if (x < -64 || x > 64 || z < -64 || z > 64) return true;
+            for (let i = 0; i < obstacles.length; i++) {
+                const ob = obstacles[i];
+                if (x + radius > ob.minX && x - radius < ob.maxX &&
+                    z + radius > ob.minZ && z - radius < ob.maxZ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function buildWeaponViewModel() {
+            if (weaponMeshGroup) camera.remove(weaponMeshGroup);
+            weaponMeshGroup = new THREE.Group();
+
+            const w = gameState.weapons[gameState.currentWeaponIdx];
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
+            const accentMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(w.color), emissive: new THREE.Color(w.color), emissiveIntensity: 0.35 });
+
+            const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.14, 0.55), bodyMat);
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.45, 10), accentMat);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(0, 0.03, -0.42);
+
+            weaponMeshGroup.add(receiver, barrel);
+            weaponMeshGroup.position.set(0.28, -0.24, -0.45);
+            camera.add(weaponMeshGroup);
+        }
+
+        // ==========================================
+        // 8. GROUND-LEVEL 3D AI TEAMMATES (Y = 0)
+        // ==========================================
+        function createNameLabelSprite(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.fillRect(8, 12, 240, 40);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(8, 12, 240, 40);
+            ctx.fillStyle = '#e0f2fe';
+            ctx.font = 'bold 20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 128, 39);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(2.2, 0.55, 1);
+            return sprite;
+        }
+
+        function spawnAlly(name, slotIdx) {
+            const group = new THREE.Group();
+            const armorMat = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfde68a });
+
+            // Torso
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.9, 0.38), armorMat);
+            torso.position.y = 1.25;
+            group.add(torso);
+
+            // Head
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.42), skinMat);
+            head.position.y = 1.95;
+            group.add(head);
+
+            // Legs grounded at Y = 0
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.8, 0.26), armorMat);
+            leftLeg.position.set(-0.18, 0.4, 0);
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.8, 0.26), armorMat);
+            rightLeg.position.set(0.18, 0.4, 0);
+            group.add(leftLeg, rightLeg);
+
+            // Arms
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.75, 0.2), armorMat);
+            leftArm.position.set(-0.46, 1.25, -0.15);
+            leftArm.rotation.x = Math.PI / 3;
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.75, 0.2), armorMat);
+            rightArm.position.set(0.46, 1.25, -0.15);
+            rightArm.rotation.x = Math.PI / 3;
+            group.add(leftArm, rightArm);
+
+            // Floating 3D Name Tag
+            const label = createNameLabelSprite(name);
+            label.position.y = 2.55;
+            group.add(label);
+
+            const angle = (slotIdx + 1) * (Math.PI / 2);
+            group.position.set(Math.cos(angle) * 4, 0, 12 + Math.sin(angle) * 4);
+            scene.add(group);
+
+            allies.push({
+                mesh: group,
+                leftLeg,
+                rightLeg,
+                leftArm,
+                rightArm,
+                name,
+                lastShot: 0,
+                stridePhase: Math.random() * Math.PI * 2
+            });
+        }
+
+        // ==========================================
+        // 9. UPRIGHT ZOMBIE SPAWNING & AI BEHAVIOR
+        // ==========================================
+        function spawnZombie() {
+            const diff = DIFFICULTY_SETTINGS[window.userSaveData.difficulty || 'novice'];
+            if (zombies.length >= diff.maxZombies) return;
+
+            const roll = Math.random();
+            let variant = 'normal';
+            let baseHp = 50;
+            let speed = 3.4;
+            let scale = 1.0;
+            let bodyColor = 0x15803d;
+            let rewardTokens = 1;
+            let rewardScore = 15;
+
+            if (roll > 0.86) {
+                variant = 'titan';
+                baseHp = 450;
+                speed = 2.3;
+                scale = 1.65;
+                bodyColor = 0xbe123c;
+                rewardTokens = 10;
+                rewardScore = 100;
+            } else if (roll > 0.62) {
+                variant = 'spitter';
+                baseHp = 70;
+                speed = 3.1;
+                scale = 1.05;
+                bodyColor = 0x7e22ce;
+                rewardTokens = 3;
+                rewardScore = 35;
+            }
+
+            const hp = Math.round(baseHp * diff.zombieHpMult);
+            const group = new THREE.Group();
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.8 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.95, 0.4), bodyMat);
+            torso.position.y = 1.25;
+            group.add(torso);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), bodyMat);
+            head.position.y = 1.98;
+            group.add(head);
+
+            // Glowing Eyes facing +Z (forward in Three.js lookAt)
+            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.05), eyeMat);
+            eyeL.position.set(-0.11, 2.02, 0.23);
+            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.05), eyeMat);
+            eyeR.position.set(0.11, 2.02, 0.23);
+            group.add(eyeL, eyeR);
+
+            // Extended Arms (+Z forward)
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.78, 0.2), bodyMat);
+            leftArm.position.set(-0.48, 1.45, 0.32);
+            leftArm.rotation.x = -Math.PI / 2.2;
+
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.78, 0.2), bodyMat);
+            rightArm.position.set(0.48, 1.45, 0.32);
+            rightArm.rotation.x = -Math.PI / 2.2;
+            group.add(leftArm, rightArm);
+
+            // Legs grounded at Y = 0
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.8, 0.26), bodyMat);
+            leftLeg.position.set(-0.18, 0.4, 0);
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.8, 0.26), bodyMat);
+            rightLeg.position.set(0.18, 0.4, 0);
+            group.add(leftLeg, rightLeg);
+
+            group.scale.set(scale, scale, scale);
+
+            // Spawn around perimeter
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 32 + Math.random() * 22;
+            const sx = Math.max(-58, Math.min(58, gameState.pos.x + Math.cos(angle) * dist));
+            const sz = Math.max(-58, Math.min(58, gameState.pos.z + Math.sin(angle) * dist));
+            group.position.set(sx, 0, sz);
+
+            scene.add(group);
+            zombies.push({
+                mesh: group,
+                leftLeg,
+                rightLeg,
+                leftArm,
+                rightArm,
+                variant,
+                hp,
+                maxHp: hp,
+                speed,
+                scale,
+                rewardTokens,
+                rewardScore,
+                lastAttack: 0,
+                stridePhase: Math.random() * Math.PI * 2
+            });
+        }
+
+        // ==========================================
+        // 10. SHOOTING, STRAIGHT CROSSHAIR BALLISTICS & SHOTGUN SPREAD
+        // ==========================================
+        function fireWeapon() {
+            if (!gameState.active || gameState.shopOpen || gameState.isReloading) return;
+            const now = performance.now();
+            const w = gameState.weapons[gameState.currentWeaponIdx];
+            if (!w || !w.unlocked) return;
+            if (now - gameState.lastFireTime < w.fireRate) return;
+
+            if (w.currentClip <= 0) {
+                startReload();
+                return;
+            }
+
+            gameState.lastFireTime = now;
+            w.currentClip--;
+            updateGameHUD();
+
+            // Weapon recoil kickback animation
+            if (weaponMeshGroup) {
+                weaponMeshGroup.position.z = -0.36;
+            }
+
+            // Exact camera forward vector (100% aligned with crosshair, zero zombie auto-aim)
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.normalize();
+
+            const laserMult = window.userSaveData.attachments.laserSight ? 0.7 : 1.0;
+            const dmgMult = 1 + (window.userSaveData.upgrades.damage * 0.12);
+
+            // Keep wide spread for shotgun even when ADS!
+            const effectiveSpread = (w.type === 'shotgun')
+                ? w.spread * laserMult
+                : (gameState.isADS ? w.spread * 0.25 * laserMult : w.spread * laserMult);
+
+            for (let p = 0; p < w.pellets; p++) {
+                const dir = forward.clone();
+                dir.x += (Math.random() - 0.5) * effectiveSpread;
+                dir.y += (Math.random() - 0.5) * effectiveSpread;
+                dir.z += (Math.random() - 0.5) * effectiveSpread;
+                dir.normalize();
+
+                const isPlasma = w.type === 'plasma';
+                const isGrenade = w.type === 'grenade';
+
+                const projGeo = isPlasma
+                    ? new THREE.SphereGeometry(0.24, 12, 12)
+                    : (isGrenade ? new THREE.SphereGeometry(0.18, 10, 10) : new THREE.SphereGeometry(0.06, 6, 6));
+                const projMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(w.color) });
+                const mesh = new THREE.Mesh(projGeo, projMat);
+
+                mesh.position.copy(camera.position).addScaledVector(dir, 0.8);
+                scene.add(mesh);
+
+                projectiles.push({
+                    mesh,
+                    dir,
+                    speed: isPlasma ? 42 : (isGrenade ? 36 : 95),
+                    damage: Math.round(w.damage * dmgMult),
+                    isEnemy: false,
+                    aoeRadius: isPlasma ? 3.8 : (isGrenade ? 5.2 : 0),
+                    life: 1.8
+                });
+            }
+
+            if (w.currentClip <= 0 && w.currentReserve > 0) {
+                startReload();
+            }
+        }
+
+        function startReload() {
+            const w = gameState.weapons[gameState.currentWeaponIdx];
+            if (!w || gameState.isReloading) return;
+            if (w.currentClip >= w.clipSize || w.currentReserve <= 0) return;
+
+            const reloadSpeedMult = 1 + (window.userSaveData.upgrades.reload * 0.10);
+            gameState.isReloading = true;
+            gameState.reloadStart = performance.now();
+            gameState.reloadDuration = w.reloadTime / reloadSpeedMult;
+            document.getElementById('reload-indicator').classList.remove('hidden');
+        }
+
+        function finishReload() {
+            const w = gameState.weapons[gameState.currentWeaponIdx];
+            if (!w) return;
+            const needed = w.clipSize - w.currentClip;
+            if (w.currentReserve === 999) {
+                w.currentClip = w.clipSize;
+            } else {
+                const take = Math.min(needed, w.currentReserve);
+                w.currentClip += take;
+                w.currentReserve -= take;
+            }
+            gameState.isReloading = false;
+            document.getElementById('reload-indicator').classList.add('hidden');
+            updateGameHUD();
+        }
+
+        window.selectWeaponSlot = function(idx) {
+            const w = gameState.weapons[idx];
+            if (!w) return;
+            if (!w.unlocked) {
+                showNotification("武器未解鎖", `請按 B 鍵開啟戰術商店花費 ${w.cost} 積分購買「${w.name}」！`, "info");
+                return;
+            }
+            gameState.currentWeaponIdx = idx;
+            gameState.isReloading = false;
+            document.getElementById('reload-indicator').classList.add('hidden');
+            buildWeaponViewModel();
+            renderWeaponSwitcherHUD();
+            updateGameHUD();
+        };
+
+        // ==========================================
+        // 11. IN-GAME TACTICAL SHOP (KEY B / ESC / MOBILE)
+        // ==========================================
+        window.toggleShop = function(forceState) {
+            if (!gameState.active) return;
+            const nextState = (typeof forceState === 'boolean') ? forceState : !gameState.shopOpen;
+            gameState.shopOpen = nextState;
+            gameState.isFiring = false;
+
+            const modal = document.getElementById('in-game-shop-modal');
+            if (nextState) {
+                if (document.pointerLockElement) {
+                    try { document.exitPointerLock(); } catch(e) {}
+                }
+                renderInGameShop();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+                if (!isMobileMode && renderer && renderer.domElement && renderer.domElement.requestPointerLock) {
+                    try { renderer.domElement.requestPointerLock(); } catch(e) {}
+                }
+            }
+        };
+
+        function renderInGameShop() {
+            const scoreEl = document.getElementById('in-game-shop-score');
+            if (scoreEl) scoreEl.textContent = gameState.score.toLocaleString();
+
+            const container = document.getElementById('in-game-shop-container');
+            if (!container) return;
+
+            let html = `
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pb-2 border-b border-slate-800">
+                    <button onclick="buyShopSupply('medkit', 40)" class="p-3 rounded-2xl bg-slate-950 border border-emerald-500/40 hover:bg-emerald-950/60 text-left transition">
+                        <div class="font-black text-xs text-emerald-400"><i class="fa-solid fa-kit-medical mr-1"></i>緊急醫療包 (+50 HP)</div>
+                        <div class="text-xs font-mono text-amber-300 mt-1">花費: 40 積分</div>
+                    </button>
+                    <button onclick="buyShopSupply('shield', 50)" class="p-3 rounded-2xl bg-slate-950 border border-cyan-500/40 hover:bg-cyan-950/60 text-left transition">
+                        <div class="font-black text-xs text-cyan-400"><i class="fa-solid fa-shield-halved mr-1"></i>能量護盾充能 (+50)</div>
+                        <div class="text-xs font-mono text-amber-300 mt-1">花費: 50 積分</div>
+                    </button>
+                    <button onclick="buyShopSupply('ammo', 35)" class="p-3 rounded-2xl bg-slate-950 border border-amber-500/40 hover:bg-amber-950/60 text-left transition">
+                        <div class="font-black text-xs text-amber-400"><i class="fa-solid fa-box-open mr-1"></i>全武器彈藥補給箱</div>
+                        <div class="text-xs font-mono text-amber-300 mt-1">花費: 35 積分</div>
+                    </button>
+                </div>
+                <div class="text-xs font-bold text-slate-300 pt-1">高階重型軍火解鎖：</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            `;
+
+            gameState.weapons.forEach((w, idx) => {
+                if (w.cost === 0) return;
+                html += `
+                    <div class="p-3.5 rounded-2xl bg-slate-950 border ${w.unlocked ? 'border-emerald-500/40' : 'border-slate-800'} flex items-center justify-between">
+                        <div>
+                            <div class="font-black text-sm text-white"><span class="text-emerald-400 font-mono mr-1">[${w.key}]</span>${w.name}</div>
+                            <div class="text-[11px] text-slate-400">傷害 ${w.damage} · 彈匣 ${w.clipSize}</div>
+                        </div>
+                        ${w.unlocked
+                            ? `<button onclick="selectWeaponSlot(${idx}); toggleShop(false);" class="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs">裝備</button>`
+                            : `<button onclick="buyShopWeapon(${idx})" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs">${w.cost} 分購買</button>`
+                        }
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        window.buyShopSupply = function(type, cost) {
+            if (gameState.score < cost) {
+                showNotification("積分不足", `購買此補給需要 ${cost} 積分。`, "error");
+                return;
+            }
+            gameState.score -= cost;
+            if (type === 'medkit') {
+                gameState.hp = Math.min(gameState.maxHp, gameState.hp + 50);
+            } else if (type === 'shield') {
+                gameState.shield = Math.min(gameState.maxShield, gameState.shield + 50);
+            } else if (type === 'ammo') {
+                gameState.weapons.forEach(w => {
+                    w.currentClip = w.clipSize;
+                    if (w.reserve !== 999) w.currentReserve = Math.ceil(w.reserve * 1.5);
+                });
+            }
+            updateGameHUD();
+            renderInGameShop();
+            showNotification("補給完成", "戰術物資已立即補充！", "success");
+        };
+
+        window.buyShopWeapon = function(idx) {
+            const w = gameState.weapons[idx];
+            if (!w || w.unlocked) return;
+            if (gameState.score < w.cost) {
+                showNotification("積分不足", `購買「${w.name}」需要 ${w.cost} 積分。`, "error");
+                return;
+            }
+            gameState.score -= w.cost;
+            w.unlocked = true;
+            selectWeaponSlot(idx);
+            renderInGameShop();
+            showNotification("武器已解鎖", `已成功購買並裝備「${w.name}」！`, "success");
+        };
+
+        // ==========================================
+        // 12. MAIN 3D SIMULATION LOOP & HUD UPDATES
+        // ==========================================
+        let prevTime = performance.now();
+
+        function gameLoop() {
+            if (!gameState.active) return;
+            animFrameId = requestAnimationFrame(gameLoop);
+
+            const now = performance.now();
+            const dt = Math.min(0.05, (now - prevTime) / 1000);
+            prevTime = now;
+
+            if (!gameState.shopOpen) {
+                updatePlayerMovement(dt);
+                updateReloadProgress(now);
+                if (gameState.isFiring) fireWeapon();
+                updateAllies(dt, now);
+                updateRemoteHumanPlayers(dt);
+                syncLocalPlayerToFirestore(now);
+                updateZombies(dt, now);
+                updateProjectiles(dt);
+                updateSpawnTimer(now);
+            }
+
+            // Smooth weapon recoil recovery & ADS FOV
+            if (weaponMeshGroup) {
+                weaponMeshGroup.position.z += (-0.45 - weaponMeshGroup.position.z) * 12 * dt;
+                const targetX = gameState.isADS ? 0 : 0.28;
+                const targetY = gameState.isADS ? -0.18 : -0.24;
+                weaponMeshGroup.position.x += (targetX - weaponMeshGroup.position.x) * 14 * dt;
+                weaponMeshGroup.position.y += (targetY - weaponMeshGroup.position.y) * 14 * dt;
+            }
+            if (camera) {
+                const isSniperADS = gameState.isADS && gameState.weapons[gameState.currentWeaponIdx].type === 'sniper';
+                const targetFov = isSniperADS ? 26 : (gameState.isADS ? 52 : 72);
+                if (Math.abs(camera.fov - targetFov) > 0.2) {
+                    camera.fov += (targetFov - camera.fov) * 14 * dt;
+                    camera.updateProjectionMatrix();
+                }
+            }
+
+            renderer.render(scene, camera);
+            renderRadarMinimap();
+        }
+
+        function updatePlayerMovement(dt) {
+            const speedMult = 1 + (window.userSaveData.upgrades.speed * 0.08);
+            const moveSpeed = (gameState.isADS ? 5.2 : 8.8) * speedMult;
+
+            let moveForward = 0;
+            let moveRight = 0;
+
+            if (gameState.keys['KeyW'] || gameState.keys['ArrowUp']) moveForward += 1;
+            if (gameState.keys['KeyS'] || gameState.keys['ArrowDown']) moveForward -= 1;
+            if (gameState.keys['KeyD'] || gameState.keys['ArrowRight']) moveRight += 1;
+            if (gameState.keys['KeyA'] || gameState.keys['ArrowLeft']) moveRight -= 1;
+
+            // Add mobile joystick input
+            moveForward += mobileJoyInput.y;
+            moveRight += mobileJoyInput.x;
+
+            const sinY = Math.sin(gameState.yaw);
+            const cosY = Math.cos(gameState.yaw);
+
+            const dx = (-sinY * moveForward + cosY * moveRight) * moveSpeed * dt;
+            const dz = (-cosY * moveForward - sinY * moveRight) * moveSpeed * dt;
+
+            if (!checkObstacleCollision(gameState.pos.x + dx, gameState.pos.z, 0.55)) {
+                gameState.pos.x += dx;
+            }
+            if (!checkObstacleCollision(gameState.pos.x, gameState.pos.z + dz, 0.55)) {
+                gameState.pos.z += dz;
+            }
+
+            camera.position.copy(gameState.pos);
+            camera.rotation.y = gameState.yaw;
+            camera.rotation.x = gameState.pitch;
+        }
+
+        function updateReloadProgress(now) {
+            if (!gameState.isReloading) return;
+            const elapsed = now - gameState.reloadStart;
+            const pct = Math.min(100, Math.floor((elapsed / gameState.reloadDuration) * 100));
+            const pctEl = document.getElementById('reload-pct');
+            const barEl = document.getElementById('reload-bar');
+            if (pctEl) pctEl.textContent = `${pct}%`;
+            if (barEl) barEl.style.width = `${pct}%`;
+            if (elapsed >= gameState.reloadDuration) {
+                finishReload();
+            }
+        }
+
+        function updateSpawnTimer(now) {
+            const diff = DIFFICULTY_SETTINGS[window.userSaveData.difficulty || 'novice'];
+            if (now - gameState.lastSpawnTime > diff.spawnRate) {
+                gameState.lastSpawnTime = now;
+                spawnZombie();
+            }
+        }
+
+        // ==========================================
+        // 8B. REAL-TIME REMOTE HUMAN AVATARS & SYNC
+        // ==========================================
+        function spawnRemoteHumanAvatar(playerData) {
+            const group = new THREE.Group();
+            const armorMat = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.4, roughness: 0.4 });
+            const visorMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            const gunMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.92, 0.4), armorMat);
+            torso.position.y = 1.25;
+            group.add(torso);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.44), armorMat);
+            head.position.y = 1.96;
+            group.add(head);
+
+            // Glowing Tactical Visor (+Z forward)
+            const visor = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.12, 0.06), visorMat);
+            visor.position.set(0, 1.98, 0.22);
+            group.add(visor);
+
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.8, 0.26), armorMat);
+            leftLeg.position.set(-0.18, 0.4, 0);
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.8, 0.26), armorMat);
+            rightLeg.position.set(0.18, 0.4, 0);
+            group.add(leftLeg, rightLeg);
+
+            // Weapon held forward (+Z)
+            const rifle = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.65), gunMat);
+            rifle.position.set(0.36, 1.38, 0.35);
+            group.add(rifle);
+
+            const label = createNameLabelSprite(`★ ${playerData.name || '真人玩家'}`);
+            label.position.y = 2.6;
+            group.add(label);
+
+            group.position.set(playerData.x || 0, 0, playerData.z || 12);
+            scene.add(group);
+
+            return {
+                mesh: group,
+                leftLeg,
+                rightLeg,
+                targetPos: new THREE.Vector3(playerData.x || 0, 0, playerData.z || 12),
+                targetYaw: playerData.yaw || 0,
+                stridePhase: 0,
+                lastProcessedShot: playerData.lastShotTime || 0,
+                name: playerData.name || '真人玩家'
+            };
+        }
+
+        function updateRemoteHumanPlayers(dt) {
+            if (!scene || gameState.mode !== 'multiplayer') return;
+            const activeRemote = (window.mpState.roomPlayers || []).filter(p => p.uid !== window.mpState.uid);
+            const activeUids = new Set(activeRemote.map(p => p.uid));
+
+            // Remove disconnected human avatars
+            Object.keys(remotePlayersMap).forEach(uid => {
+                if (!activeUids.has(uid)) {
+                    scene.remove(remotePlayersMap[uid].mesh);
+                    delete remotePlayersMap[uid];
+                }
+            });
+
+            // Spawn or smoothly interpolate connected human avatars
+            activeRemote.forEach(p => {
+                let avatar = remotePlayersMap[p.uid];
+                if (!avatar) {
+                    avatar = spawnRemoteHumanAvatar(p);
+                    remotePlayersMap[p.uid] = avatar;
+                }
+                avatar.targetPos.set(p.x || 0, 0, p.z || 12);
+                avatar.targetYaw = p.yaw || 0;
+
+                const moveDist = avatar.mesh.position.distanceTo(avatar.targetPos);
+                avatar.mesh.position.lerp(avatar.targetPos, Math.min(1, dt * 12));
+                avatar.mesh.rotation.y = avatar.targetYaw + Math.PI;
+
+                if (moveDist > 0.03) {
+                    avatar.stridePhase += dt * 12;
+                    avatar.leftLeg.rotation.x = Math.sin(avatar.stridePhase) * 0.55;
+                    avatar.rightLeg.rotation.x = -Math.sin(avatar.stridePhase) * 0.55;
+                } else {
+                    avatar.leftLeg.rotation.x = 0;
+                    avatar.rightLeg.rotation.x = 0;
+                }
+
+                // Render remote player's gunshot tracer when they fire!
+                if (p.lastShotTime && p.lastShotTime > avatar.lastProcessedShot) {
+                    avatar.lastProcessedShot = p.lastShotTime;
+                    const shotDir = new THREE.Vector3(-Math.sin(p.yaw || 0), 0, -Math.cos(p.yaw || 0)).normalize();
+                    const tracerMesh = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.09, 6, 6),
+                        new THREE.MeshBasicMaterial({ color: 0xa3e635 })
+                    );
+                    tracerMesh.position.set(avatar.mesh.position.x, 1.45, avatar.mesh.position.z).addScaledVector(shotDir, 0.7);
+                    scene.add(tracerMesh);
+                    projectiles.push({
+                        mesh: tracerMesh,
+                        dir: shotDir,
+                        speed: 85,
+                        damage: 0, // Visual sync only; owner computes authoritative damage
+                        isEnemy: false,
+                        aoeRadius: 0,
+                        life: 0.7
+                    });
+                }
+            });
+        }
+
+        function syncLocalPlayerToFirestore(now) {
+            if (!db || !firebaseUser || gameState.mode !== 'multiplayer' || !window.mpState.roomCode) return;
+            if (now - window.mpState.lastSyncTime < 110) return;
+            window.mpState.lastSyncTime = now;
+
+            const playerDocId = `${window.mpState.roomCode}_${firebaseUser.uid}`;
+            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mp_players', playerDocId), {
+                roomCode: window.mpState.roomCode,
+                uid: firebaseUser.uid,
+                name: window.userSaveData.displayName || "特勤員",
+                x: Number(gameState.pos.x.toFixed(2)),
+                y: 0,
+                z: Number(gameState.pos.z.toFixed(2)),
+                yaw: Number(gameState.yaw.toFixed(3)),
+                hp: Math.ceil(gameState.hp),
+                maxHp: gameState.maxHp,
+                weaponIdx: gameState.currentWeaponIdx,
+                lastShotTime: gameState.lastFireTime,
+                updatedAt: Date.now()
+            }, { merge: true }).catch(() => {});
+        }
+
+        function updateSquadLiveHUD() {
+            const hud = document.getElementById('squad-live-hud');
+            if (!hud) return;
+            if (!gameState.active || gameState.mode !== 'multiplayer') {
+                hud.classList.add('hidden');
+                return;
+            }
+            const remoteHumans = (window.mpState.roomPlayers || []).filter(p => p.uid !== window.mpState.uid);
+            if (remoteHumans.length === 0) {
+                hud.classList.remove('hidden');
+                hud.innerHTML = `<div class="text-[10px] text-slate-400 font-mono">房號 <span class="text-lime-400 font-bold">${window.mpState.roomCode || '單機'}</span> · 等待真人加入</div>`;
+                return;
+            }
+            hud.classList.remove('hidden');
+            hud.innerHTML = `<div class="text-[10px] text-lime-400 font-bold">真人小隊 (${window.mpState.roomCode})</div>` + remoteHumans.map(p => {
+                const pct = Math.max(0, Math.min(100, ((p.hp || 100) / (p.maxHp || 100)) * 100));
+                return `
+                    <div class="text-[10px]">
+                        <div class="flex justify-between text-slate-200 font-bold">
+                            <span class="truncate max-w-[110px]">★ ${p.name}</span>
+                            <span class="font-mono text-emerald-400">${Math.ceil(p.hp || 100)} HP</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                            <div class="h-full bg-lime-400" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateAllies(dt, now) {
+            allies.forEach((ally, idx) => {
+                // Grounded at Y = 0
+                ally.mesh.position.y = 0;
+
+                // Find nearest zombie
+                let nearest = null;
+                let minDist = 35;
+                zombies.forEach(z => {
+                    const d = ally.mesh.position.distanceTo(z.mesh.position);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = z;
+                    }
+                });
+
+                let moveVec = new THREE.Vector3();
+                if (nearest && minDist < 7.5) {
+                    // Tactical kiting backwards while firing when zombie gets too close
+                    moveVec.subVectors(ally.mesh.position, nearest.mesh.position).setY(0).normalize();
+                } else {
+                    // Patrol near player formation
+                    const formationAngle = gameState.yaw + (idx + 1) * 1.4;
+                    const desiredX = gameState.pos.x + Math.cos(formationAngle) * 4.5;
+                    const desiredZ = gameState.pos.z + Math.sin(formationAngle) * 4.5;
+                    const toFormation = new THREE.Vector3(desiredX - ally.mesh.position.x, 0, desiredZ - ally.mesh.position.z);
+                    if (toFormation.length() > 1.8) {
+                        moveVec.copy(toFormation).normalize();
+                    }
+                }
+
+                if (moveVec.lengthSq() > 0.01) {
+                    const stepX = moveVec.x * 5.2 * dt;
+                    const stepZ = moveVec.z * 5.2 * dt;
+                    if (!checkObstacleCollision(ally.mesh.position.x + stepX, ally.mesh.position.z, 0.5)) {
+                        ally.mesh.position.x += stepX;
+                    }
+                    if (!checkObstacleCollision(ally.mesh.position.x, ally.mesh.position.z + stepZ, 0.5)) {
+                        ally.mesh.position.z += stepZ;
+                    }
+                    ally.stridePhase += dt * 10;
+                    ally.leftLeg.rotation.x = Math.sin(ally.stridePhase) * 0.55;
+                    ally.rightLeg.rotation.x = -Math.sin(ally.stridePhase) * 0.55;
+                } else {
+                    ally.leftLeg.rotation.x = 0;
+                    ally.rightLeg.rotation.x = 0;
+                }
+
+                if (nearest) {
+                    ally.mesh.lookAt(nearest.mesh.position.x, 0, nearest.mesh.position.z);
+                    if (now - ally.lastShot > 650) {
+                        ally.lastShot = now;
+                        const shootDir = new THREE.Vector3(
+                            nearest.mesh.position.x - ally.mesh.position.x,
+                            0.1,
+                            nearest.mesh.position.z - ally.mesh.position.z
+                        ).normalize();
+
+                        const pMesh = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.08, 6, 6),
+                            new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+                        );
+                        pMesh.position.set(ally.mesh.position.x, 1.4, ally.mesh.position.z);
+                        scene.add(pMesh);
+                        projectiles.push({
+                            mesh: pMesh,
+                            dir: shootDir,
+                            speed: 75,
+                            damage: 24,
+                            isEnemy: false,
+                            aoeRadius: 0,
+                            life: 1.4
+                        });
+                    }
+                }
+            });
+        }
+
+        function updateZombies(dt, now) {
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                const z = zombies[i];
+
+                // Keep zombie strictly upright on ground Y = 0
+                z.mesh.position.y = 0;
+                z.mesh.lookAt(gameState.pos.x, 0, gameState.pos.z);
+
+                const toPlayer = new THREE.Vector3(
+                    gameState.pos.x - z.mesh.position.x,
+                    0,
+                    gameState.pos.z - z.mesh.position.z
+                );
+                const dist = toPlayer.length();
+
+                if (dist > 1.7 * z.scale) {
+                    toPlayer.normalize();
+                    const stepX = toPlayer.x * z.speed * dt;
+                    const stepZ = toPlayer.z * z.speed * dt;
+                    if (!checkObstacleCollision(z.mesh.position.x + stepX, z.mesh.position.z, 0.5 * z.scale)) {
+                        z.mesh.position.x += stepX;
+                    }
+                    if (!checkObstacleCollision(z.mesh.position.x, z.mesh.position.z + stepZ, 0.5 * z.scale)) {
+                        z.mesh.position.z += stepZ;
+                    }
+
+                    // Upright walking stride animation
+                    z.stridePhase += dt * z.speed * 2.6;
+                    z.leftLeg.rotation.x = Math.sin(z.stridePhase) * 0.55;
+                    z.rightLeg.rotation.x = -Math.sin(z.stridePhase) * 0.55;
+                    z.leftArm.rotation.x = -Math.PI / 2.2 + Math.cos(z.stridePhase) * 0.18;
+                    z.rightArm.rotation.x = -Math.PI / 2.2 - Math.cos(z.stridePhase) * 0.18;
+                }
+
+                // Spitter ranged acid attack
+                if (z.variant === 'spitter' && dist < 24 && dist > 6 && now - z.lastAttack > 2600) {
+                    z.lastAttack = now;
+                    const acidDir = new THREE.Vector3(
+                        gameState.pos.x - z.mesh.position.x,
+                        (gameState.pos.y - 0.3) - 1.6,
+                        gameState.pos.z - z.mesh.position.z
+                    ).normalize();
+
+                    const acidMesh = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.22, 8, 8),
+                        new THREE.MeshBasicMaterial({ color: 0xa855f7 })
+                    );
+                    acidMesh.position.set(z.mesh.position.x, 1.6, z.mesh.position.z);
+                    scene.add(acidMesh);
+                    projectiles.push({
+                        mesh: acidMesh,
+                        dir: acidDir,
+                        speed: 22,
+                        damage: 14,
+                        isEnemy: true,
+                        aoeRadius: 0,
+                        life: 2.2
+                    });
+                }
+
+                // Melee upright attack
+                if (dist <= 2.1 * z.scale && now - z.lastAttack > 1100) {
+                    z.lastAttack = now;
+                    z.leftArm.rotation.x = -Math.PI / 1.4;
+                    z.rightArm.rotation.x = -Math.PI / 1.4;
+                    damagePlayer(z.variant === 'titan' ? 26 : 12, false);
+                }
+            }
+        }
+
+        function updateProjectiles(dt) {
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.life -= dt;
+                p.mesh.position.addScaledVector(p.dir, p.speed * dt);
+
+                let hit = false;
+
+                // Check obstacle collision
+                if (checkObstacleCollision(p.mesh.position.x, p.mesh.position.z, 0.15) && p.mesh.position.y < 3.2) {
+                    hit = true;
+                }
+
+                if (!hit && p.isEnemy) {
+                    // Check hit against player
+                    if (p.mesh.position.distanceTo(gameState.pos) < 0.95) {
+                        hit = true;
+                        damagePlayer(p.damage, true);
+                    }
+                } else if (!hit && !p.isEnemy) {
+                    // Check hit against zombies
+                    for (let j = zombies.length - 1; j >= 0; j--) {
+                        const z = zombies[j];
+                        const zCenter = new THREE.Vector3(z.mesh.position.x, 1.2 * z.scale, z.mesh.position.z);
+                        if (p.mesh.position.distanceTo(zCenter) < 0.95 * z.scale) {
+                            hit = true;
+                            if (p.aoeRadius > 0) {
+                                // AoE explosion / plasma shockwave
+                                zombies.forEach((otherZ, oIdx) => {
+                                    const d = otherZ.mesh.position.distanceTo(p.mesh.position);
+                                    if (d <= p.aoeRadius) {
+                                        applyDamageToZombie(oIdx, p.damage);
+                                    }
+                                });
+                            } else {
+                                applyDamageToZombie(j, p.damage);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (hit || p.life <= 0) {
+                    scene.remove(p.mesh);
+                    projectiles.splice(i, 1);
+                }
+            }
+        }
+
+        function applyDamageToZombie(index, dmg) {
+            const z = zombies[index];
+            if (!z) return;
+            z.hp -= dmg;
+            if (z.hp <= 0) {
+                scene.remove(z.mesh);
+                zombies.splice(index, 1);
+
+                // Award Infinite Bio Tokens & Score immediately!
+                const diff = DIFFICULTY_SETTINGS[window.userSaveData.difficulty || 'novice'];
+                const bonusTokens = window.userSaveData.upgrades.tokenBonus || 0;
+                const earnedTokens = z.rewardTokens + bonusTokens;
+                const earnedScore = Math.round(z.rewardScore * diff.scoreMult);
+
+                window.userSaveData.bioTokens += earnedTokens;
+                gameState.score += earnedScore;
+                gameState.kills += 1;
+
+                // Vampire core heal
+                if (window.userSaveData.attachments.vampireCore) {
+                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + 3);
+                }
+
+                persistSaveData();
+                updateGameHUD();
+            }
+        }
+
+        function damagePlayer(amount, isAcid) {
+            if (!gameState.active) return;
+
+            const flash = document.getElementById('damage-flash');
+            if (flash) {
+                flash.classList.remove('hit-overlay', 'acid-hit-overlay');
+                void flash.offsetWidth;
+                flash.classList.add(isAcid ? 'acid-hit-overlay' : 'hit-overlay');
+            }
+
+            if (gameState.shield > 0) {
+                const absorbed = Math.min(gameState.shield, amount);
+                gameState.shield -= absorbed;
+                amount -= absorbed;
+            }
+            gameState.hp = Math.max(0, gameState.hp - amount);
+            updateGameHUD();
+
+            if (gameState.hp <= 0) {
+                const finalKills = gameState.kills;
+                const finalScore = gameState.score;
+                exitGameToHome();
+                showNotification("戰役結束 · 戰績已結算", `本次擊殺 ${finalKills} 隻殭屍，獲得 ${finalScore.toLocaleString()} 積分，生物點數已全數保留！`, "info");
+            }
+        }
+
+        function updateGameHUD() {
+            const hpPct = Math.max(0, Math.min(100, (gameState.hp / gameState.maxHp) * 100));
+            const shPct = Math.max(0, Math.min(100, (gameState.shield / gameState.maxShield) * 100));
+
+            document.getElementById('hp-text').textContent = `${Math.ceil(gameState.hp)} / ${gameState.maxHp}`;
+            document.getElementById('hp-bar').style.width = `${hpPct}%`;
+            document.getElementById('shield-text').textContent = `${Math.ceil(gameState.shield)} / ${gameState.maxShield}`;
+            document.getElementById('shield-bar').style.width = `${shPct}%`;
+            document.getElementById('score-display').textContent = gameState.score.toLocaleString();
+            document.getElementById('hud-kills-label').textContent = gameState.kills.toLocaleString();
+
+            const w = gameState.weapons[gameState.currentWeaponIdx];
+            if (w) {
+                document.getElementById('weapon-name-hud').textContent = `[${w.key}] ${w.name}`;
+                document.getElementById('ammo-clip').textContent = w.currentClip;
+                document.getElementById('ammo-reserve').textContent = w.currentReserve === 999 ? '∞' : w.currentReserve;
+            }
+        }
+
+        function renderWeaponSwitcherHUD() {
+            const bar = document.getElementById('weapon-switcher-bar');
+            if (!bar) return;
+            bar.innerHTML = gameState.weapons.map((w, idx) => {
+                const active = idx === gameState.currentWeaponIdx;
+                return `
+                    <button onclick="selectWeaponSlot(${idx})" class="px-2.5 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 ${active ? 'bg-emerald-500 text-slate-950 shadow-md' : (w.unlocked ? 'bg-slate-950/90 text-slate-300 hover:bg-slate-800 border border-slate-700' : 'bg-slate-950/50 text-slate-600 border border-slate-800')}">
+                        <span class="font-mono">${w.key}</span>
+                        <i class="fa-solid ${w.icon} text-[10px]"></i>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function renderRadarMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const scale = 1.6;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Radar rings
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+            ctx.arc(cx, cy, 56, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Zombies (Red / Purple / Rose dots)
+            zombies.forEach(z => {
+                const dx = (z.mesh.position.x - gameState.pos.x) * scale;
+                const dz = (z.mesh.position.z - gameState.pos.z) * scale;
+                if (dx * dx + dz * dz < 60 * 60) {
+                    ctx.fillStyle = z.variant === 'titan' ? '#f43f5e' : (z.variant === 'spitter' ? '#a855f7' : '#ef4444');
+                    ctx.beginPath();
+                    ctx.arc(cx + dx, cy + dz, z.variant === 'titan' ? 4.5 : 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Allies (Cyan dots)
+            allies.forEach(a => {
+                const dx = (a.mesh.position.x - gameState.pos.x) * scale;
+                const dz = (a.mesh.position.z - gameState.pos.z) * scale;
+                if (dx * dx + dz * dz < 60 * 60) {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(cx + dx, cy + dz, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Remote Real Human Teammates (Bright Lime Dots)
+            Object.values(remotePlayersMap).forEach(rp => {
+                const dx = (rp.mesh.position.x - gameState.pos.x) * scale;
+                const dz = (rp.mesh.position.z - gameState.pos.z) * scale;
+                if (dx * dx + dz * dz < 60 * 60) {
+                    ctx.fillStyle = '#a3e635';
+                    ctx.beginPath();
+                    ctx.arc(cx + dx, cy + dz, 4.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Player center arrow
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(-gameState.yaw);
+            ctx.fillStyle = '#34d399';
+            ctx.beginPath();
+            ctx.moveTo(0, -6);
+            ctx.lineTo(4.5, 5);
+            ctx.lineTo(-4.5, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // ==========================================
+        // 13. DESKTOP & MOBILE TOUCH INPUT LISTENERS
+        // ==========================================
+        function setADSState(active) {
+            if (!gameState.active || gameState.shopOpen) return;
+            gameState.isADS = active;
+            const w = gameState.weapons[gameState.currentWeaponIdx];
+            const scope = document.getElementById('sniper-scope');
+            const crosshair = document.getElementById('crosshair');
+            if (active && w && w.type === 'sniper') {
+                scope.classList.remove('hidden');
+                crosshair.classList.add('hidden');
+            } else {
+                scope.classList.add('hidden');
+                crosshair.classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('keydown', e => {
+            gameState.keys[e.code] = true;
+            if (!gameState.active) return;
+
+            if (e.code === 'KeyB' || e.code === 'Escape') {
+                e.preventDefault();
+                toggleShop();
+                return;
+            }
+            if (gameState.shopOpen) return;
+
+            if (e.code === 'KeyR') startReload();
+            if (e.code.startsWith('Digit')) {
+                const num = parseInt(e.code.replace('Digit', ''), 10);
+                if (num >= 1 && num <= 8) {
+                    selectWeaponSlot(num - 1);
+                }
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            gameState.keys[e.code] = false;
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!gameState.active || gameState.shopOpen || isMobileMode) return;
+            if (document.pointerLockElement === renderer.domElement) {
+                const sens = gameState.isADS ? 0.0011 : 0.0022;
+                gameState.yaw -= e.movementX * sens;
+                gameState.pitch = Math.max(-1.35, Math.min(1.35, gameState.pitch - e.movementY * sens));
+            }
+        });
+
+        window.addEventListener('mousedown', e => {
+            if (!gameState.active || gameState.shopOpen || isMobileMode) return;
+            if (e.target.closest('button')) return;
+
+            if (document.pointerLockElement !== renderer.domElement && renderer && renderer.domElement.requestPointerLock) {
+                try { renderer.domElement.requestPointerLock(); } catch(err) {}
+            }
+
+            if (e.button === 0) {
+                gameState.isFiring = true;
+                fireWeapon();
+            } else if (e.button === 2) {
+                setADSState(true);
+            }
+        });
+
+        window.addEventListener('mouseup', e => {
+            if (e.button === 0) gameState.isFiring = false;
+            if (e.button === 2) setADSState(false);
+        });
+
+        window.addEventListener('contextmenu', e => {
+            if (gameState.active) e.preventDefault();
+        });
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        // Mobile Touch Joystick & Full-Screen Aiming Swipe
+        const mobileJoyInput = { x: 0, y: 0 };
+        let joyTouchId = null;
+        let lookTouchId = null;
+        let lastLookX = 0;
+        let lastLookY = 0;
+
+        function bindMobileTouchControls() {
+            const joyZone = document.getElementById('joystick-zone');
+            const joyKnob = document.getElementById('joystick-knob');
+            const gameView = document.getElementById('game-view');
+
+            if (joyZone && joyKnob) {
+                joyZone.addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    const t = e.changedTouches[0];
+                    joyTouchId = t.identifier;
+                    updateJoystick(t, joyZone, joyKnob);
+                }, { passive: false });
+
+                joyZone.addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === joyTouchId) {
+                            updateJoystick(e.changedTouches[i], joyZone, joyKnob);
+                        }
+                    }
+                }, { passive: false });
+
+                const resetJoy = e => {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === joyTouchId) {
+                            joyTouchId = null;
+                            mobileJoyInput.x = 0;
+                            mobileJoyInput.y = 0;
+                            joyKnob.style.transform = 'translate(0px, 0px)';
+                        }
+                    }
+                };
+                joyZone.addEventListener('touchend', resetJoy);
+                joyZone.addEventListener('touchcancel', resetJoy);
+            }
+
+            // Full-screen swipe to aim/look around on mobile
+            if (gameView) {
+                gameView.addEventListener('touchstart', e => {
+                    if (!gameState.active || gameState.shopOpen) return;
+                    if (e.target.closest('button') || e.target.closest('#joystick-zone')) return;
+                    const t = e.changedTouches[0];
+                    if (lookTouchId === null) {
+                        lookTouchId = t.identifier;
+                        lastLookX = t.clientX;
+                        lastLookY = t.clientY;
+                    }
+                }, { passive: true });
+
+                gameView.addEventListener('touchmove', e => {
+                    if (!gameState.active || gameState.shopOpen || lookTouchId === null) return;
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        const t = e.changedTouches[i];
+                        if (t.identifier === lookTouchId) {
+                            const dx = t.clientX - lastLookX;
+                            const dy = t.clientY - lastLookY;
+                            lastLookX = t.clientX;
+                            lastLookY = t.clientY;
+                            const sens = gameState.isADS ? 0.0028 : 0.0055;
+                            gameState.yaw -= dx * sens;
+                            gameState.pitch = Math.max(-1.35, Math.min(1.35, gameState.pitch - dy * sens));
+                        }
+                    }
+                }, { passive: true });
+
+                const endLook = e => {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === lookTouchId) {
+                            lookTouchId = null;
+                        }
+                    }
+                };
+                gameView.addEventListener('touchend', endLook);
+                gameView.addEventListener('touchcancel', endLook);
+            }
+
+            const btnFire = document.getElementById('btn-touch-fire');
+            if (btnFire) {
+                btnFire.addEventListener('touchstart', e => { e.preventDefault(); gameState.isFiring = true; fireWeapon(); });
+                btnFire.addEventListener('touchend', e => { e.preventDefault(); gameState.isFiring = false; });
+            }
+
+            const btnAds = document.getElementById('btn-touch-ads');
+            if (btnAds) {
+                btnAds.addEventListener('touchstart', e => { e.preventDefault(); setADSState(!gameState.isADS); });
+            }
+
+            const btnReload = document.getElementById('btn-touch-reload');
+            if (btnReload) {
+                btnReload.addEventListener('touchstart', e => { e.preventDefault(); startReload(); });
+            }
+
+            const btnShop = document.getElementById('btn-touch-shop');
+            if (btnShop) {
+                btnShop.addEventListener('touchstart', e => { e.preventDefault(); toggleShop(true); });
+            }
+        }
+
+        function updateJoystick(touch, zone, knob) {
+            const rect = zone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const maxR = rect.width / 2 - 16;
+
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+            if (dist > maxR) {
+                dx = (dx / dist) * maxR;
+                dy = (dy / dist) * maxR;
+            }
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+            mobileJoyInput.x = dx / maxR;
+            mobileJoyInput.y = -(dy / maxR);
+        }
+
+        // ==========================================
+        // 14. INITIALIZE ON PAGE LOAD
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocalSave();
+            updateTokenDisplays();
+            window.updateAuthUI();
+            updateDifficultyCardsUI();
+            renderShowcaseGrids();
+            refreshFriendsDisplay();
+            bindMobileTouchControls();
+            initFirebaseMultiplayer();
+        });
+
+        window.addEventListener('beforeunload', () => {
+            leaveCurrentMultiplayerRoom();
+        });
+    </script>
+</body>
+</html>
